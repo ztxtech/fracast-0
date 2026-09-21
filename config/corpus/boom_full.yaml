@@ -1,0 +1,20 @@
+# 语料构建：Datadog/BOOM（Toto 的可观测性域 + 公开基准）→ fast 格式
+#
+# 背景（2026-09-13 二次复检）：`data/boom/` 已下载 2,807 个数据集 / 2,807 个 arrow，
+# 但从未转换。schema = ['start','item_id','freq','target']，
+# 与 `dataport/build_corpus.py::iter_arrow_series` 契约一致 ✓。
+#
+# 跑法（CPU/IO 任务，不占 GPU）：
+#   .venv/bin/python main.py config/corpus/boom_full.yaml --list
+#   .venv/bin/python main.py config/corpus/boom_full.yaml --workers 8
+#   env -u PYTHONPATH .venv/bin/python script/corpus/merge_corpus_parts.py --corpus data/corpus_fast/boom
+_run:
+  kind: build_corpus
+  tag: corpus_boom
+  grid:
+    part: [0, 1, 2, 3, 4, 5, 6, 7]   # 数字 → out 目录 part0…part7（读取器按 p* 扫 ✓）
+src: data/boom
+out: data/corpus_fast/boom/{grid}
+parts: 8             # 2,807 个小数据集 / 2.8GB → 8 路（每路 ~350 集）
+shard_gb: 4
+balance: bytes

@@ -1,0 +1,128 @@
+# FracCast pretraining defaults.
+#
+# Every value that affects model shape, optimization, or data sampling lives
+# here or in a child YAML file.  Model code reads values from the config object
+# and does not hard-code training hyperparameters.
+
+model:
+  family: fraccast
+  d_model: 64
+  W: 2048
+  level_widths: [2048]
+  n_stages: 10
+  dilation_base: 2
+  kernel_size: 3
+  ffn_mult: 1.5
+  causal: true
+  separable_conv: true
+  share_stages: true
+  scale_cond: film
+  scale_cond_dim: 8
+  recency_encoding: true
+  periodic_phase: true
+  periodic_topk: 4
+  periodic_harmonics: 1
+  periodic_alpha: 0.05
+  periodic_min_period: 2
+  head_kind: gather
+  head_future_conv: true
+  head_future_conv_layers: 6
+  head_future_conv_seed: 128
+  head_phase_bins: 16
+  head_seasonal_fill_mode: phase_mean
+  head_d_ff: 96
+  head_layers: 1
+  head_fc_layers: 2
+  head_fc_kernel: 3
+  head_conv_kernel: 4
+  head_output_mode: direct
+  quantiles: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+  horizon: 48
+  future_queries: 3
+  future_patch: 16
+  context_norm: robust
+  delta_reg: 0.0
+  align_lambda: 0.0
+
+pyramid:
+  ratios: []
+  mode: none
+  time_rope: false
+  level_embed: false
+  bottleneck: null
+
+heads:
+  forecast:
+    enabled: true
+    horizon: 48
+  imputation:
+    enabled: false
+  anomaly:
+    enabled: false
+  classification:
+    enabled: false
+
+repr:
+  enabled: false
+  lambda_intra: 0.0
+  lambda_order: 0.0
+  geometry: axis_order
+  warmup_frac: 0.0
+
+data:
+  corpus_dirs: []
+  dataset_include: null
+  window_mode: raw
+  level_norm: window_minmax
+  max_channels: 1
+  val_fraction: 0.1
+  hole_prob: 0.0
+  seed: 42
+  num_workers: 8
+  prefetch_factor: 4
+  band_mix:
+    shares:
+      second: 0.06
+      subhour: 0.30
+      hour: 0.31
+      day: 0.15
+      week: 0.08
+      month: 0.07
+
+train:
+  seed: 42
+  batch_size: 512
+  grad_accum_steps: 8
+  total_steps: 36621
+  lr: 0.003
+  min_lr: 0.00001
+  lr_schedule: wsd
+  warmup_steps: 1831
+  wsd_stable_frac: 0.65
+  beta2: 0.95
+  weight_decay: 0.01
+  grad_clip: 1.0
+  commit_w: 0.3
+  pred_clamp: 5.0
+  target_clamp: 10.0
+  min_range: 0.0001
+  ar_chunks: 4
+  scheduled_sampling_max: 0.5
+  augment:
+    enabled: true
+    time_flip: 0.5
+    sign_flip: 0.5
+    downsample: [2, 3, 4]
+    downsample_p: 0.5
+    mixup: 0.5
+  amp: true
+  compile: true
+  fused_optim: true
+  log_every: 100
+  eval_every: 1145
+  ckpt_every_steps: 1145
+  ckpt_avg_last: 8
+  out_dir: output/fracast-0
+  resume: auto
+  sampling:
+    policy: band_mix

@@ -1,0 +1,3 @@
+# Optional: required only to rebuild the four TinyCast synthetic shards.
+# TinyCast requires Python 3.10 or newer.
+tinycast @ git+https://github.com/raws-labs/tinycast.git@628c0bec8425240d5f12155add1d1d5bc2d92471

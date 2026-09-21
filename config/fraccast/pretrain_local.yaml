@@ -1,0 +1,22 @@
+# Local (CPU or MPS) pretraining recipe.
+#
+# This keeps the public corpus and the effective batch size of the full CUDA
+# recipe while avoiding CUDA-only optimizations.  It is intentionally slow.
+inherit: pretrain_full.yaml
+
+_run:
+  kind: train
+  tag: fraccast-local
+
+data:
+  num_workers: 4
+
+train:
+  batch_size: 32
+  grad_accum_steps: 128
+  amp: false
+  compile: false
+  fused_optim: false
+  tf32: false
+  cudnn_benchmark: false
+  out_dir: output/fracast-0-local

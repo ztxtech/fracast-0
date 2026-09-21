@@ -1,0 +1,29 @@
+# Full public-corpus FracCast pretraining recipe.
+#
+# The six corpus roots are the public sources documented in README.md.  Run
+# the corpus preparation flow for each source before starting this config.
+inherit: pretrain_base.yaml
+
+_run:
+  kind: train
+  tag: fraccast-full
+
+data:
+  corpus_dirs:
+    - data/corpus_fast/pret
+    - data/corpus_fast/lotsa
+    - data/corpus_fast/chronos
+    - data/corpus_fast/boom
+    - data/corpus_fast/fev
+    - data/corpus_fast/tinycast_synth
+  dataset_include: null
+  num_workers: 8
+
+train:
+  batch_size: 512
+  grad_accum_steps: 8
+  total_steps: 36621
+  tf32: true
+  cudnn_benchmark: true
+  out_dir: output/fracast-0-full
+  resume: auto

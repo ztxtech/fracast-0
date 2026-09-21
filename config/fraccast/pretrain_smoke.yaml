@@ -1,0 +1,39 @@
+# CPU/MPS-friendly smoke run.
+#
+# It uses the tiny synthetic corpus produced by:
+#   python script/data/make_demo_corpus.py
+#   python main.py config/corpus/demo.yaml
+inherit: pretrain_base.yaml
+
+_run:
+  kind: train
+  tag: fraccast-smoke
+
+model:
+  d_model: 32
+  W: 64
+  level_widths: [64]
+  n_stages: 6
+  head_d_ff: 48
+  head_future_conv_layers: 2
+
+data:
+  corpus_dirs:
+    - data/corpus_fast/demo
+  num_workers: 0
+  prefetch_factor: 2
+
+train:
+  batch_size: 4
+  grad_accum_steps: 1
+  total_steps: 4
+  warmup_steps: 1
+  log_every: 1
+  eval_every: 2
+  ckpt_every_steps: 2
+  ckpt_avg_last: 0
+  amp: false
+  compile: false
+  fused_optim: false
+  out_dir: tmp/fracast-smoke
+  resume: false

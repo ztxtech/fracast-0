@@ -1,0 +1,11 @@
+# Tiny synthetic corpus used by the local smoke test.
+_run:
+  kind: build_corpus
+  tag: demo-corpus
+
+src: data/demo_raw
+out: data/corpus_fast/demo/p0
+parts: 1
+part: 0
+shard_gb: 0.05
+balance: index
