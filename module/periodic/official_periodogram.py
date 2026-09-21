@@ -1,15 +1,13 @@
-# 官方实现复本（逐字复制，零修改）。
+# Verbatim copy of the upstream implementation.
 #
-# 来源仓库: raws-labs/tinycast (Apache-2.0), 论文 arXiv:2608.15767
-# 官方路径: tinycast/periodogram.py
-# 复制日期: 2026-09-11
+# Source: raws-labs/tinycast (Apache-2.0), arXiv:2608.15767
+# Upstream path: tinycast/periodogram.py
 #
-# 为什么逐字复制而不是重写：重写必然引入偏离（命名/边界/dtype 提升/clamp 位置），
-# 而这些都会静默改变数值。算法本体保持官方原样，我们的新代码只在 module/periodic/encoder.py
-# （集成层）。任何对本文件内容的改动都算偏离官方，必须在
-# 在发布说明中标注并独立做消融验证。
+# Keep this file byte-for-byte aligned with the upstream algorithm. FracCast-specific
+# integration lives in module/periodic/encoder.py. Any change here should be treated as
+# a deliberate divergence and documented in the release notes.
 #
-# 原文件头部 docstring 见下（保留不动）。
+# The original module docstring follows unchanged.
 
 """Normalized-periodogram period detector.
 
@@ -37,21 +35,21 @@ def significant_periods(
     """Identify candidate periods via the normalized periodogram.
 
     Score per frequency bin k:
-        I_norm[k] = |X[k]|² / sum_k' |X[k']|²
+        I_norm[k] = |X[k]|^2 / sum_k' |X[k']|^2
 
     Under H_0 (white Gaussian noise), max(I_norm) follows an extreme-value
     distribution. Peaks are filtered by a Bonferroni-corrected significance
     threshold:
 
-        t_α = ln(N_bins / α) / N_bins
+        t_alpha = ln(N_bins / alpha) / N_bins
 
     where N_bins is the number of valid frequency bins (data-determined,
-    not a knob) and α is the significance level (default 0.05). Peaks below
-    t_α are excluded by setting their score to -inf, so ``n_valid`` reflects
+    not a knob) and alpha is the significance level (default 0.05). Peaks below
+    t_alpha are excluded by setting their score to -inf, so ``n_valid`` reflects
     only periods that pass.
 
-    α is exposed for completeness but should normally stay at 0.05; smaller
-    (e.g. 0.01) is stricter, larger (0.10) laxer. Set α=1.0 to disable
+    alpha is exposed for completeness but should normally stay at 0.05; smaller
+    (e.g. 0.01) is stricter, larger (0.10) laxer. Set alpha=1.0 to disable
     filtering entirely.
 
     Returns ``(periods, scores, n_valid)``: integer periods (0 = rejected),

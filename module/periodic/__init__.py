@@ -1,4 +1,5 @@
-"""周期图相位编码：official_*.py = 官方逐字复本，encoder.py = 我们的集成层。
+"""Periodic phase encoding.
 
-来源与偏离声明见 `encoder.py` 顶部。
+The ``official_*`` modules are verbatim copies of the reference implementation.
+``encoder.py`` contains the integration used by FracCast.
 """

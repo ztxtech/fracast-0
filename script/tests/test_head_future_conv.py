@@ -1,15 +1,15 @@
-"""解码头「形状通路」单元门（CPU 可跑全）—— A 季节填充 / B 未来状态 / C 集成。
+"""CPU tests for forecast-head shape paths and future-state conditioning.
 
-为什么要有这道门（用户 2026-09-17 要求「一块一块完成、一块一块测试」）：
-本次要修的是**结构性缺陷**（解码头每个未来步看到的样本相关输入完全相同 → 只学得到趋势），
-这类改动一旦写错，训练照样跑、loss 照样降，但论文结论是假的。所以每块都必须先绿再上卡：
-  · A `folded_seasonal_fill` 必须与**官方源码**逐位一致（不是与我手抄的副本比 ✓）；
-  · B `FutureConvStates` 必须**因果**（未来位置看不到更晚的信息）；
-  · C `head_future_conv` 关掉时必须与历史实现**逐位恒等**，打开但未训练时也必须恒等
-    （`fc_out` 零初始化）→ 保证「修」不会把任何在跑的实验搞坏 ✓。
+These tests guard three structural properties before GPU training: seasonal
+fill matches the official implementation, future states are causal, and the
+optional future convolution is bit-for-bit equivalent when disabled or
+initialized but untrained. A wrong implementation can still reduce training
+loss, so these checks are required before experiments.
 
-用法：env -u PYTHONPATH .venv/bin/python script/tests/test_head_future_conv.py
+Run with: env -u PYTHONPATH .venv/bin/python script/tests/test_head_future_conv.py
 """
+
+
 from __future__ import annotations
 
 import copy
@@ -36,7 +36,7 @@ fails: list[str] = []
 
 
 def check(name: str, cond: bool, detail: str = "") -> None:
-    print(f"  {'✓' if cond else '✗'} {name}{('  ' + detail) if detail else ''}")
+    print(f"  {'PASS' if cond else 'FAIL'} {name}{(': ' + detail) if detail else '|'}")
     if not cond:
         fails.append(name)
 
@@ -53,7 +53,7 @@ def make_cfg(**model_over):
 
 def periodic_ctx(b: int, w: int, period: int, amp: float = 1.0,
                  offset: float = 0.0, noise: float = 0.0, seed: int = 0):
-    """干净周期序列：[B, W]，值 = offset + amp·sin(2πt/period) + 噪声 ✓。"""
+    """Build a deterministic periodic series with optional additive noise."""
     g = torch.Generator().manual_seed(seed)
     t = torch.arange(w).float().view(1, w)
     y = offset + amp * torch.sin(2 * torch.pi * t / period)
@@ -62,17 +62,17 @@ def periodic_ctx(b: int, w: int, period: int, amp: float = 1.0,
     return y.expand(b, w).clone()
 
 
-# ─────────────────────────── Part A：季节折叠填充 ───────────────────────────
+# Part A: seasonal folded fill
 def test_part_a() -> None:
-    print("[A] folded_seasonal_fill（零参数）")
+    print("[A] folded seasonal fill (parameter-free)")
     try:
         from tinycast.backbone import DilatedConvBackbone
     except ImportError:
-        print("  [skip] tinycast 未安装，跳过官方源码逐位对拍")
+        print("  SKIP: tinycast is not installed; official comparison omitted")
         DilatedConvBackbone = None
 
-    # ① 与**官方源码**逐位对拍：把官方方法绑到一个只有 phase_bins 的壳上，
-    #    这样比的是官方真源码，不是我在测试里重抄一遍的实现 ✓
+    # Bind the official implementation to a shell with only phase_bins. This compares
+    # against the actual upstream source rather than a copied implementation.
     if DilatedConvBackbone is not None:
         for nb in (16, 8, 4):
             shell = types.SimpleNamespace(phase_bins=nb)
@@ -82,41 +82,41 @@ def test_part_a() -> None:
             periods = torch.tensor([[7, 24, 0, 0]] * B, dtype=torch.long)
             ours = folded_seasonal_fill(x, fut, periods, phase_bins=nb)
             theirs = ref(x, fut, periods)
-            check(f"A1 与官方逐位一致（phase_bins={nb}）", torch.equal(ours, theirs),
-                  f"max|Δ|={float((ours - theirs).abs().max()):.3e}")
+            check(f"A1 official implementation matches exactly with phase_bins={nb}", torch.equal(ours, theirs),
+              f"max|delta|={float((ours - theirs).abs().max()):.3e}")
 
-    # ② 填充本身要真的携带形状：周期 7 的输入 → 填充在 lag-7 上应完全自相关
+    # The fill must carry shape: a period-seven input correlates at lag seven.
     x = periodic_ctx(1, W, 7, amp=3.0, offset=10.0)
     fut = torch.arange(W, W + H).view(1, H)
     periods = torch.tensor([[7, 0, 0, 0]], dtype=torch.long)
     fill = folded_seasonal_fill(x, fut, periods, phase_bins=16)
     amp_in = float(x[:, -10 * 7:].std())
     amp_fill = float(fill.std())
-    # 注意：不能用 torch.roll（会绕回，边界错位）→ 用 [:-7] vs [7:] 的错位比较 ✓
+    # Compare shifted tails directly; torch.roll would wrap around at the boundary.
     a, b = fill[0, :-7], fill[0, 7:]
     corr = float(torch.corrcoef(torch.stack([a, b]))[0, 1])
-    check("A2 填充保留周期 7 的振幅", amp_fill > 0.25 * amp_in,
-          f"输入 std {amp_in:.3f} → 填充 std {amp_fill:.3f}")
-    check("A3 填充在 lag-7 上完全自相关", corr > 0.999, f"corr={corr:.4f}")
+    check("A2 fill preserves the period-seven amplitude", amp_fill > 0.25 * amp_in,
+          f"input std={amp_in:.3f}; fill std={amp_fill:.3f}")
+    check("A3 fill correlates exactly at lag seven", corr > 0.999, f"corr={corr:.4f}")
 
-    # ③ mask：无效点不参与相位均值（官方无此能力，属登记过的必要偏离）
+    # Masking invalid observations is a deliberate extension of the official helper.
     xm = x.clone()
-    xm[:, :W // 2] = 999.0                     # 前半段是垃圾
+    xm[:, :W // 2] = 999.0  # The first half is intentionally invalid.
     mask = torch.ones_like(x, dtype=torch.bool)
     mask[:, :W // 2] = False
     fill_m = folded_seasonal_fill(x, fut, periods, phase_bins=16, mask=mask)
-    check("A4 有 mask 时只取有效点（与无 mask 一致）", torch.allclose(fill, fill_m))
+    check("A4 masked and valid-only fills agree", torch.allclose(fill, fill_m))
     fill_bad = folded_seasonal_fill(xm, fut, periods, phase_bins=16)
-    check("A5 不 mask 会被垃圾点污染", not torch.allclose(fill, fill_bad))
+    check("A5 invalid points pollute an unmasked fill", not torch.allclose(fill, fill_bad))
 
-    # ④ 周期检测：干净周期 7 → 主周期应检出 7
+    # A clean period-seven signal should report seven as the dominant period.
     p = detect_periods(x[:, -512:], top_k=4, min_period=2, alpha=0.05)
-    check("A6 周期图检出主周期 7", int(p[0, 0]) == 7, f"detected={p[0].tolist()}")
+    check("A6 periodogram detects dominant period seven", int(p[0, 0]) == 7, f"detected={p[0].tolist()}")
 
 
-# ─────────────────────────── Part B：未来状态 ───────────────────────────
+# Part B: future states
 def test_part_b() -> None:
-    print("[B] FutureConvStates（因果膨胀卷积）")
+    print("[B] FutureConvStates (causal dilated convolution)")
     torch.manual_seed(0)
     d, seed = 64, 128
     m = FutureConvStates(d, n_layers=4, seed=seed, kernel=3, ffn_mult=1.5).eval()
@@ -125,11 +125,11 @@ def test_part_b() -> None:
     pe = torch.randn(B, H, 5)
     with torch.no_grad():
         st = m(h, fill, pe)
-    check("B1 形状 [B,H,D]", tuple(st.shape) == (B, H, d), str(tuple(st.shape)))
-    check("B2 out_proj 零初始化 ⇒ 状态恒为 0（起点等于基线 ✓）",
+    check("B1 state has shape [B,H,D]", tuple(st.shape) == (B, H, d), str(tuple(st.shape)))
+    check("B2 zero-initialized output projection leaves states at the baseline",
           float(st.abs().max()) == 0.0)
 
-    # 随机化 out_proj 之后：因果性 —— 改 fill[:, t] 不能影响 states[:, :t]
+    # After randomizing out_proj, changing fill[t] must not affect states[:t].
     nn_lin = torch.nn.Linear(d, d)
     with torch.no_grad():
         m.out_proj.weight.copy_(nn_lin.weight)
@@ -141,16 +141,16 @@ def test_part_b() -> None:
         pert = m(h, fill2, pe)
     d_pre = (pert[:, :t0] - base[:, :t0]).abs().max()
     d_post = (pert[:, t0:] - base[:, t0:]).abs().max()
-    check("B3 因果：改第 t 步填充不影响更早的未来位置", float(d_pre) == 0.0,
-          f"t<{t0} max|Δ|={float(d_pre):.3e}")
-    check("B4 而且确实有影响（不是通路没接上）", float(d_post) > 0.0,
-          f"t>={t0} max|Δ|={float(d_post):.3e}")
-    check("B5 状态沿地平线确实在变（不是常数）",
+    check("B3 changing fill at t does not affect earlier future positions", float(d_pre) == 0.0,
+          f"t<{t0} max|delta|={float(d_pre):.3e}")
+    check("B4 the perturbation reaches current and later positions", float(d_post) > 0.0,
+          f"t>={t0} max|delta|={float(d_post):.3e}")
+    check("B5 states vary along the horizon and are not constant",
           float(base.std(dim=1).mean()) > 0.0,
           f"per-step std={float(base.std(dim=1).mean()):.4f}")
 
 
-# ─────────────────────────── Part C：集成 ───────────────────────────
+# Part C: model integration
 def _head(fc: bool):
     m = dict(d_model=64, quantiles=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
              horizon=H, future_queries=3, future_patch=16, head_d_ff=96,
@@ -162,15 +162,15 @@ def _head(fc: bool):
 
 
 def test_part_c() -> None:
-    print("[C] GatherQuantileHead 集成")
+    print("[C] GatherQuantileHead integration")
     off, on = _head(False), _head(True)
-    check("C1 开关关 ⇒ 不建 future_conv 子模块", off.future_conv is None)
-    check("C2 开关开 ⇒ 建了 future_conv 子模块", on.future_conv is not None)
-    check("C3 参数量增量",
+    check("C1 disabled switch creates no future_conv module", off.future_conv is None)
+    check("C2 enabled switch creates the future_conv module", on.future_conv is not None)
+    check("C3 parameter count increases",
           n_params(on) > n_params(off),
-          f"{n_params(off)} → {n_params(on)}（+{n_params(on) - n_params(off)}）")
+          f"{n_params(off)} -> {n_params(on)} (+{n_params(on) - n_params(off)})")
 
-    # 把共享部分拷过去，验证「打开但未训练」与「关掉」逐位恒等（fc_out 零初始化）
+    # Copy shared weights to prove that an enabled but untrained head equals the disabled head.
     sd_off = off.state_dict()
     sd_on = on.state_dict()
     shared = {k: v for k, v in sd_off.items() if k in sd_on}
@@ -184,48 +184,48 @@ def test_part_c() -> None:
     with torch.no_grad():
         q_off = off.forward_horizon(h, ctx=ctx, ctx_mask=mask)
         q_on = on.forward_horizon(h, ctx=ctx, ctx_mask=mask)
-    check("C4 打开但未训练 == 关掉（逐位恒等 ✓）", torch.equal(q_off, q_on),
-          f"max|Δ|={float((q_off - q_on).abs().max()):.3e}")
+    check("C4 enabled and untrained exactly equals disabled", torch.equal(q_off, q_on),
+          f"max|delta|={float((q_off - q_on).abs().max()):.3e}")
 
-    # 关掉时输出必须与 ctx 无关；打开并随机化 fc_out 后必须依赖 ctx，且差异随步变化
+    # Disabled output is context-independent; randomized enabled output depends on context.
     with torch.no_grad():
         q_off2 = off.forward_horizon(h, ctx=ctx2, ctx_mask=mask)
         on.future_conv.out_proj.weight.normal_(0, 0.5)
         on.future_conv.out_proj.bias.zero_()
         q_on_a = on.forward_horizon(h, ctx=ctx, ctx_mask=mask)
         q_on_b = on.forward_horizon(h, ctx=ctx2, ctx_mask=mask)
-    check("C5 关掉时输出与 ctx 无关", torch.equal(q_off, q_off2))
-    check("C6 打开后输出依赖 ctx", not torch.equal(q_on_a, q_on_b),
-          f"max|Δ|={float((q_on_a - q_on_b).abs().max()):.3e}")
+    check("C5 disabled output is context-independent", torch.equal(q_off, q_off2))
+    check("C6 enabled output depends on context", not torch.equal(q_on_a, q_on_b),
+          f"max|delta|={float((q_on_a - q_on_b).abs().max()):.3e}")
 
-    # 缺 ctx 必须报错（防止训练侧漏接线还照常跑）
+    # Missing context must fail rather than silently degrade to the old path.
     try:
         on.forward_horizon(h)
         raised = False
     except ValueError:
         raised = True
-    check("C7 开关开但没传 ctx ⇒ 报错（不静默降级 ✓）", raised)
+    check("C7 missing context raises instead of degrading silently", raised)
 
 
-# ─────────────────────────── Part D：整模型 ───────────────────────────
+# Part D: complete model
 def test_part_d() -> None:
-    print("[D] build_from_cfg / 默认关闭")
+    print("[D] build_from_cfg / default-disabled head")
     torch.manual_seed(0)
     _, head_default = build_from_cfg(make_cfg(head_future_conv=False))
-    check("D1 默认配置不建 future_conv（→ 历史实验逐位不受影响 ✓）",
+    check("D1 default configuration creates no future_conv",
           head_default.future_conv is None)
     torch.manual_seed(0)
     _, head_on = build_from_cfg(make_cfg(head_future_conv=True))
-    check("D2 配置打开后建得起来", head_on.future_conv is not None,
-          f"整头参数 {n_params(head_on):,}（含 future_conv "
-          f"{n_params(head_on.future_conv):,}）")
+    check("D2 enabled configuration builds successfully", head_on.future_conv is not None,
+          f"head parameters={n_params(head_on):,}; future_conv parameters="
+          f"{n_params(head_on.future_conv):,}")
 
 
 def test_part_e() -> None:
-    print("[E] last_period_fill（零参数精确周期）")
+    print("[E] last-period fill (parameter-free exact periods)")
     w, p, h = 32, 7, 10
     t = torch.arange(w).float().view(1, w)
-    # 每个周期叠加不同常数：相位均值会抹平周期间跳变，精确复制必须保留尾周期。
+    # Constant offsets differ by period; exact copy preserves the latest phase mean.
     x = (t % p + 1.0 + 100.0 * torch.floor(t / p)).view(1, w)
     fut = torch.arange(w, w + h).view(1, h)
     periods = torch.tensor([[p]], dtype=torch.long)
@@ -233,29 +233,28 @@ def test_part_e() -> None:
     distance = fut - (w - 1)
     src = fut - ((distance + p - 1) // p) * p
     expected = x[:, src.squeeze()]
-    check("E1 尾周期逐位精确复制", torch.equal(fill, expected),
+    check("E1 latest period is copied exactly", torch.equal(fill, expected),
           f"src={src.tolist()} fill={fill.tolist()}")
     phase_mean = folded_seasonal_fill(x, fut, periods, phase_bins=16)
-    check("E2 与相位均值不同（不是同一机制重复 ✓）",
-          not torch.equal(fill, phase_mean),
-          f"max|Δ|={float((fill - phase_mean).abs().max()):.3f}")
+    check("E2 phase-mean fill is a distinct mechanism", not torch.equal(fill, phase_mean),
+          f"max|delta|={float((fill - phase_mean).abs().max()):.3f}")
 
     mask = torch.ones_like(x, dtype=torch.bool)
     mask[0, src[0, 0].item()] = False
     fill_masked = last_period_fill(x, fut, periods, phase_bins=16, mask=mask)
-    check("E3 无效源点回退到有效均值", torch.equal(fill_masked[0, 0], x[mask].mean()),
+    check("E3 an invalid source point falls back to the valid mean", torch.equal(fill_masked[0, 0], x[mask].mean()),
           f"fallback={float(fill_masked[0, 0]):.4f}")
 
     torch.manual_seed(0)
     _, head_last = build_from_cfg(make_cfg(
         head_future_conv=True, head_seasonal_fill_mode="last_period"))
-    check("E4 配置接线到解码头", head_last.seasonal_fill_mode == "last_period")
+    check("E4 configuration is wired into the head", head_last.seasonal_fill_mode == "last_period")
     try:
         build_from_cfg(make_cfg(head_seasonal_fill_mode="bad"))
         raised = False
     except ValueError:
         raised = True
-    check("E5 非法模式报错（不静默降级 ✓）", raised)
+    check("E5 invalid mode raises instead of degrading silently", raised)
 
 
 def main() -> None:
@@ -265,9 +264,9 @@ def main() -> None:
     test_part_c()
     test_part_d()
     if fails:
-        print(f"\n[FAIL] {len(fails)} 项未过：{fails}")
+        print(f"\n[FAIL] {len(fails)} checks failed: {fails}")
         sys.exit(1)
-    print("\n[OK] 解码头形状通路：A/B/C/D/E 全部通过 ✓")
+    print("\n[OK] all forecast-head shape-path tests passed")
 
 
 if __name__ == "__main__":

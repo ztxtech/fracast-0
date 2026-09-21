@@ -1,20 +1,13 @@
-# losses/ — 损失函数
+# Losses
 
-## 用途
+Shared loss functions used by the model and training pipelines.
 
-损失函数。
+## Contents
 
-## 包含什么
+- Quantile pinball losses.
 
-- 含 committing 损失等
+## Organization
 
-## 不包含什么
-
-- 不放上级目录职责内的其它内容（见 `../readme.md` ✓）。
-- 不放实验产物（在 `output/` ✓）、不放原始数据（在 `data/` ✓）。
-
-## 命名与组织约定
-
-- 遵循上级目录 `../readme.md` 的约定 ✓。
-- 修改本目录代码后，必须跑对应门：模型/组件改动跑**等价性门槛**（`script/verify_model_equivalence.py` ✓），
-  流程改动跑**全 pipeline 导入门**（`script/smoke_pipeline_imports.py` ✓）。
+- Models and reusable components should use these implementations instead of
+  defining local copies.
+- Keep experiment outputs in `output/` and datasets in `data/`.

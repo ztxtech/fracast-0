@@ -1,36 +1,9 @@
-"""分片预读：把「逐行小随机读」变成「顺序大块读」，专门治 Lustre 冷读 ✗。
+"""Background shard prefetching for storage-bound training jobs.
 
-## 为什么需要它（2026-09-14 实测，`script/diagnostics/io_probe.py`）
-
-| 读法 | 冷（不在页缓存） | 热 |
-| --- | --- | --- |
-| 顺序大块读（8 MB 块） | ~1.1 GB/s | ~4.3 GB/s |
-| 按 offsets **逐行读**（dataloader 的真实读法） | **3.4–4.0 ms/行** | 0.01–0.08 ms/行 |
-
-生产（16 任务 × 16 worker、4 卡 × 4 任务）实测 loader 卡在 ~4.4k 样本/s/任务 ≈ 3.6 ms/样本，
-与「冷读逐行」的 3.5 ms/样本**完全吻合** → 瓶颈是**冷读 IO**，不是 CPU 预处理 ✓。
-（语料 2,053 GB > 内存 1,868 GB，所以页缓存永远装不下全量 ✗。）
-
-## 做法
-
-每个训练进程一个**后台预读线程**：sampler 进入某个分片时，把**后面 lookahead 个分片**
-按 8 MB 块顺序读一遍（只为了灌页缓存，数据丢掉 ✓）。读的带宽 1.1 GB/s ≫ 逐行的 ~0.3 GB/s，
-而且整块顺序读让 Lustre 走大 RPC（逐行读是 30 KB 级别的小 RPC ✗）。
-
-## 进程间去重（关键，不然 16 个任务会把带宽打爆）
-
-16 个训练任务的 sampler 顺序**完全一样**（同 seed ✓），所以它们想要的是同一批分片。
-去重用 `tmp/prefetch/<sha1(路径)>.stamp`：
-
-- 抢占：`O_CREAT|O_EXCL` 建 stamp，建成功才读（谁先到谁读 ✓）；
-- 别人的 stamp 新鲜（TTL 内）→ 直接跳过（他读的就是我要读的 ✓）；
-- stamp 过期 → 说明上一个读的人挂了/读完太久，重新读一遍 ✓。
-
-## 边界
-
-- 预读**不碰数据**：只读页缓存，不改任何样本 → 不影响等价性门槛 ✓；
-- 预读线程是 daemon，队列有上限（读不过来就丢任务，不积压内存 ✗）；
-- `FT_PREFETCH=0` 可整体关掉（做 A/B 用 ✓）。
+The training reader performs offset-based random row access.  On a cold file
+system, those small reads can be much slower than sequential block reads.  A
+single background thread reads upcoming shards in large blocks to warm the page
+cache without changing the data returned to the sampler.
 """
 from __future__ import annotations
 
@@ -53,7 +26,7 @@ def _default_stamp_dir() -> Path:
 
 
 class ShardPrefetcher:
-    """后台顺序预读分片（见模块 docstring ✓）。"""
+    """Warm the page cache by reading upcoming shards sequentially."""
 
     def __init__(self, lookahead: int = 2, chunk_mb: int = 8,
                  ttl_s: float = 900.0, stamp_dir: Path | None = None,
@@ -68,30 +41,30 @@ class ShardPrefetcher:
         self.stats = {"queued": 0, "read": 0, "skipped": 0, "bytes": 0, "fail": 0}
         self._q: "queue.Queue[tuple[str, str]]" = queue.Queue(
             maxsize=max(4, self.lookahead * 4))
-        self._seen: set[str] = set()          # 本进程已入队的路径（不重复入队 ✓）
+        self._seen: set[str] = set()
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
         if self.enabled:
             try:
                 self.stamp_dir.mkdir(parents=True, exist_ok=True)
             except OSError:
-                self.enabled = False          # 建不出目录就安静退化（不影响训练 ✓）
+                self.enabled = False
         self._buf = bytearray(self.chunk)
 
-    # ---- 主线程接口 ----
+    # Public interface used by the sampler thread.
     def warm(self, paths: list[str | Path]) -> None:
-        """把接下来要用的分片路径交给后台线程（不阻塞 ✓）。"""
+        """Queue upcoming shard paths without blocking the caller."""
         if not self.enabled:
             return
-        for p in paths:
-            sp = str(p)
-            if sp in self._seen:
+        for path in paths:
+            key = str(path)
+            if key in self._seen:
                 continue
-            self._seen.add(sp)
+            self._seen.add(key)
             try:
-                self._q.put_nowait((sp, self._stamp_path(sp)))
+                self._q.put_nowait((key, self._stamp_path(key)))
             except queue.Full:
-                self._seen.discard(sp)        # 队列满了：等下次再提（不阻塞 ✗）
+                self._seen.discard(key)
                 return
             self.stats["queued"] += 1
         self._ensure_thread()
@@ -102,7 +75,7 @@ class ShardPrefetcher:
         if th is not None and wait:
             th.join(timeout=5.0)
 
-    # ---- 后台线程 ----
+    # Background worker implementation.
     def _ensure_thread(self) -> None:
         if self._thread is None or not self._thread.is_alive():
             self._stop.clear()
@@ -115,7 +88,7 @@ class ShardPrefetcher:
         return str(self.stamp_dir / f"{Path(path).name}.{h}.stamp")
 
     def _claim(self, stamp: str) -> bool:
-        """抢占该分片的预读权：新鲜 stamp 存在 → 别人在管/刚管完 → 跳过 ✓。"""
+        """Claim prefetch ownership for one shard."""
         try:
             fd = os.open(stamp, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
         except FileExistsError:
@@ -127,7 +100,7 @@ class ShardPrefetcher:
                 self.stats["skipped"] += 1
                 return False
             try:
-                os.utime(stamp, None)         # 过期 → 抢占（刷 mtime ✓）
+                os.utime(stamp, None)
             except OSError:
                 pass
             return True
@@ -159,7 +132,7 @@ class ShardPrefetcher:
             t0 = time.perf_counter()
             try:
                 self._read_seq(path)
-            except Exception:                 # noqa: BLE001（预读失败绝不影响训练 ✓）
+            except Exception:  # noqa: BLE001 - prefetch must never stop training
                 self.stats["fail"] += 1
             else:
                 self.stats["last_s"] = round(time.perf_counter() - t0, 2)

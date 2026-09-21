@@ -1,12 +1,12 @@
-"""FracCast 单元门（CPU 可跑全）：参数账 / 形状 / 因果性 / Δ_i identity / 结构 / 梯度 / 外推。
+"""CPU unit tests for FracCast structure and numerical behavior.
 
-为什么要有这个门：
-FracCast 的**主张**是一个结构性事实 —— 「一份权重服务所有尺度」；
-它一旦写错（比如每级又偷偷建了一份参数、或者因果填充写反），
-训练照样跑、损失照样降，但论文结论就是假的 ✗。所以这些断言必须**先绿再上卡** ✓。
+The central claim is that one set of block weights serves every scale. The
+tests check parameter sharing, shapes, causality, conditioning initialization,
+gradients, parameter counts, and context extension before GPU training.
 
-用法：env -u PYTHONPATH .venv/bin/python script/tests/test_fraccast_unit.py
+Run with: env -u PYTHONPATH .venv/bin/python script/tests/test_fraccast_unit.py
 """
+
 from __future__ import annotations
 
 import copy
@@ -27,7 +27,7 @@ fails: list[str] = []
 
 
 def check(name: str, cond: bool, detail: str = "") -> None:
-    mark = "✓" if cond else "✗"
+    mark = "PASS" if cond else "FAIL"
     print(f"  {mark} {name}{('  ' + detail) if detail else ''}")
     if not cond:
         fails.append(name)
@@ -55,74 +55,74 @@ def rand_input(b: int = B, w: int = W, seed: int = 0):
     g = torch.Generator().manual_seed(seed)
     values = torch.randn(b, 1, w, generator=g)
     mask = torch.ones(b, 1, w, dtype=torch.bool)
-    mask[0, 0, : w // 8] = False                    # 制造一段未观测（cov=0）
+    mask[0, 0, : w // 8] = False  # Include an unobserved prefix.
     cov = mask.to(torch.float32)
     return values, mask, cov
 
 
 def main() -> int:
-    print("① 结构：一份权重 vs 每级一份")
+    print("1. structure: shared weights versus per-level weights")
     _, core_t, _ = build(share_stages=True, scale_cond="film")
     _, core_u, _ = build(share_stages=False)
     keys_t = {k.split(".")[0] for k in core_t.state_dict()}
     keys_u = {k.split(".")[0] for k in core_u.state_dict()}
-    check("tied 只有一个 block（没有 blocks.*）", "block" in keys_t and "blocks" not in keys_t)
-    check("untied 有 blocks.0..N-1", "blocks" in keys_u and "block" not in keys_u)
-    check("tied 参数严格少于 untied",
+    check("shared core has one block, not a blocks module", "block" in keys_t and "blocks" not in keys_t)
+    check("unshared core has indexed blocks", "blocks" in keys_u and "block" not in keys_u)
+    check("shared core has fewer parameters than the unshared core",
           n_params(core_t) < n_params(core_u),
           f"{n_params(core_t):,} < {n_params(core_u):,}")
     n_block = n_params(core_t.block)
-    check("untied ≈ tied + (N-1)·block 参数",
+    check("unshared parameter count equals shared count plus extra block copies",
           abs(n_params(core_u) - (n_params(core_t) + 9 * n_block)) <= 2 * 64,
           f"diff={n_params(core_u) - n_params(core_t) - 9 * n_block}")
 
-    print("② 前向形状与数值健康度")
+    print("2. forward shapes and numerical health")
     values, mask, cov = rand_input()
     _, _, head_t = build(share_stages=True, scale_cond="film",
                          head_future_conv=False)
     with torch.no_grad():
         h = core_t(values, mask, cov)
         qh = head_t.forward_horizon(h)
-    check("core 输出 [B, W, D]", tuple(h.shape) == (B, W, 64), str(tuple(h.shape)))
-    check("head 输出 [B, H, Q]", tuple(qh.shape) == (B, H, Q), str(tuple(qh.shape)))
-    check("输出无 NaN/Inf", bool(torch.isfinite(h).all() and torch.isfinite(qh).all()))
+    check("core output has shape [B, W, D]", tuple(h.shape) == (B, W, 64), str(tuple(h.shape)))
+    check("head output has shape [B, H, Q]", tuple(qh.shape) == (B, H, Q), str(tuple(qh.shape)))
+    check("outputs contain no NaN or Inf", bool(torch.isfinite(h).all() and torch.isfinite(qh).all()))
 
-    print("③ 因果性：改最后一个输入点，不许影响更早位置的输出")
+    print("3. causality: changing the last point does not change earlier outputs")
     v2 = values.clone()
     v2[:, 0, -1] += 10.0
     with torch.no_grad():
         h2 = core_t(v2, mask, cov)
     d_early = (h2[:, :-1] - h[:, :-1]).abs().max().item()
     d_last = (h2[:, -1] - h[:, -1]).abs().max().item()
-    check("更早位置逐位不变", d_early == 0.0, f"max|Δ|={d_early:.3e}")
-    check("最后位置确实变了（探针有效）", d_last > 1e-6, f"max|Δ|={d_last:.3e}")
+    check("earlier positions remain bit-for-bit unchanged", d_early == 0.0, f"max|delta|={d_early:.3e}")
+    check("the final position changes, so the probe is active", d_last > 1e-6, f"max|delta|={d_last:.3e}")
 
-    print("④ Δ_i 在初始化处严格 identity")
+    print("4. scale conditioning is exactly the identity at initialization")
     cond = core_t.scale
     x = torch.randn(2, 7, 64, generator=torch.Generator().manual_seed(1))
     with torch.no_grad():
         for i in (0, 3, 9):
             y = cond(x, core_t.dilations()[i])
             check(f"stage {i} identity", torch.equal(y, x),
-                  f"max|Δ|={(y - x).abs().max().item():.3e}")
+                  f"max|delta|={(y - x).abs().max().item():.3e}")
         gb = cond.gamma_beta(core_t.dilations())
-        check("γ、β 初值全 0", bool((gb == 0).all()))
+    check("gamma and beta initialize to zero", bool((gb == 0).all()))
 
-    print("⑤ 梯度回路：共享块必须从每一级都收到梯度")
+    print("5. gradients: the shared block receives gradients from every level")
     cfg = make_cfg(share_stages=True, scale_cond="film")
     torch.manual_seed(0)
     core, head = build_from_cfg(cfg)
     values, mask, cov = rand_input()
     loss = core(values, mask, cov).pow(2).mean()
     loss.backward()
-    check("共享块 conv 权重有梯度", core.block.dw_weight.grad is not None
+    check("shared convolution weights receive gradients", core.block.dw_weight.grad is not None
           and float(core.block.dw_weight.grad.abs().sum()) > 0)
-    check("Δ_i 的 to_gb 有梯度", core.scale.to_gb.weight.grad is not None
+    check("scale-conditioning projection receives gradients", core.scale.to_gb.weight.grad is not None
           and float(core.scale.to_gb.weight.grad.abs().sum()) > 0)
-    check("in_proj 有梯度", core.in_proj.weight.grad is not None
+    check("input projection receives gradients", core.in_proj.weight.grad is not None
           and float(core.in_proj.weight.grad.abs().sum()) > 0)
 
-    print("⑥ 参数量账（写进论文表的数字必须从这里来）")
+    print("6. parameter accounting for published tables")
     rows = []
     for name, over in (("tied_d64", {"share_stages": True, "scale_cond": "film"}),
                        ("tied_d64_nofilm", {"share_stages": True, "scale_cond": "none"}),
@@ -135,39 +135,39 @@ def main() -> int:
         print(f"      {name:<16} core={nc:>7,}  head={nh:>6,}  total={tot:>7,}")
     tied_tot = dict((r[0], r[3]) for r in rows)["tied_d64"]
     untied_tot = dict((r[0], r[3]) for r in rows)["untied_d64"]
-    check("tied 总参数 ≤ 官方 TinyCast 146,505", tied_tot <= 146_505,
+    check("shared model is no larger than the TinyCast 146,505 parameters", tied_tot <= 146_505,
           f"{tied_tot:,} vs 146,505")
-    check("untied 总参数明显更大（说明共享确实省参）", untied_tot > tied_tot * 2,
+    check("untying scales substantially and confirms the parameter saving", untied_tot > tied_tot * 2,
           f"{untied_tot:,} vs {tied_tot:,}")
 
-    print("⑦ 上下文外推：加级不加参数（论文 C3 的结构前提）")
+    print("7. context extrapolation: adding levels adds no parameters")
     cfg_x = make_cfg(share_stages=True, scale_cond="film", n_stages=14)
     torch.manual_seed(0)
     core_x, _ = build_from_cfg(cfg_x)
-    check("N=14 与 N=10 参数量完全相同", n_params(core_x) == n_params(core_t),
+    check("14 levels have the same parameter count as 10 levels", n_params(core_x) == n_params(core_t),
           f"{n_params(core_x):,} vs {n_params(core_t):,}")
-    check("N=14 的 dilation 阶梯确实更长",
+    check("14 levels produce the expected dilation ladder",
           len(core_x.dilations()) == 14 and max(core_x.dilations()) == 8192,
           f"RF={1 + (core_x.block.kernel - 1) * sum(core_x.dilations())}")
-    check("训练外的极大尺度也有定义且不产生 NaN",
+    check("out-of-training scales remain finite and initialized as identity",
           bool(torch.isfinite(core_x.scale.scale_feat(2 ** 20)).all() and
                torch.equal(core_x.scale(x, 2 ** 20), x)),
-          "τ=20 的 scale_feat 有限、初始化为 identity")
+          "scale_feat is finite and conditioning is the identity at tau=20")
     with torch.no_grad():
         hx = core_x(values, mask, cov)
-    check("N=14 前向形状不变", tuple(hx.shape) == (B, W, 64))
-    check("N=14 未出现 NaN", bool(torch.isfinite(hx).all()))
+    check("14 levels preserve the forward-output shape", tuple(hx.shape) == (B, W, 64))
+    check("14 levels produce no NaN", bool(torch.isfinite(hx).all()))
 
-    print("⑧ 配置守卫：非空 pyramid 必须报错（防止悄悄退化成金字塔模型）")
+    print("8. configuration guard: a non-empty pyramid is rejected")
     cfg_bad = make_cfg()
     cfg_bad["pyramid"]["ratios"] = [4, 4]
     try:
         build_from_cfg(cfg_bad)
-        check("ratios 非空 → ValueError", False, "没有报错 ✗")
+        check("non-empty ratios raise ValueError", False, "no exception was raised")
     except ValueError as exc:
-        check("ratios 非空 → ValueError", "单条全分辨率" in str(exc), str(exc)[:40])
+        check("non-empty ratios raise ValueError", "single full-resolution" in str(exc), str(exc)[:40])
 
-    print(f"\n结果：{'全绿 ✓' if not fails else '失败 ' + ', '.join(fails) + ' ✗'}")
+    print(f"\nResult: {'PASS' if not fails else 'FAIL: ' + ', '.join(fails)}")
     return 1 if fails else 0
 
 

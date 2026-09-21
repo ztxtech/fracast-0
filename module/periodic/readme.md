@@ -1,20 +1,16 @@
-# periodic/ — 周期/相位编码
+# Periodic Encoding
 
-## 用途
+Period detection and phase-encoding components.
 
-周期/相位编码。
+## Contents
 
-## 包含什么
+- `official_periodogram.py`: normalized-periodogram period detector.
+- `official_encoding.py`: phase and bounded-recency encoding primitives.
+- `encoder.py`: multi-resolution integration used by FracCast.
+- `seasonal_fill.py`: seasonal fill utilities for forecast decoding.
 
-- PeriodicPhaseEncoder
+## Organization
 
-## 不包含什么
-
-- 不放上级目录职责内的其它内容（见 `../readme.md` ✓）。
-- 不放实验产物（在 `output/` ✓）、不放原始数据（在 `data/` ✓）。
-
-## 命名与组织约定
-
-- 遵循上级目录 `../readme.md` 的约定 ✓。
-- 修改本目录代码后，必须跑对应门：模型/组件改动跑**等价性门槛**（`script/verify_model_equivalence.py` ✓），
-  流程改动跑**全 pipeline 导入门**（`script/smoke_pipeline_imports.py` ✓）。
+- Files prefixed with `official_` are kept as reference copies and should only
+  be changed when the upstream revision is deliberately updated.
+- Keep experiment outputs in `output/` and datasets in `data/`.

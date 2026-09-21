@@ -5,7 +5,7 @@ from datetime import datetime
 
 
 class Timer:
-    """计时器：可作上下文管理器，也可手动读取 elapsed。"""
+    """Measure elapsed wall time as a context manager or manual timer."""
 
     def __init__(self) -> None:
         self._start = time.perf_counter()
@@ -18,14 +18,14 @@ class Timer:
 
     @property
     def elapsed(self) -> float:
-        """返回自计时开始以来的秒数。"""
+        """Return elapsed seconds."""
         return time.perf_counter() - self._start
 
     def reset(self) -> None:
-        """重新开始计时。"""
+        """Restart the timer."""
         self._start = time.perf_counter()
 
 
 def now_str(fmt: str = "%Y%m%d-%H%M%S") -> str:
-    """返回当前时间字符串，默认适合作为 run 名称。"""
+    """Return a timestamp suitable for a run name."""
     return datetime.now().strftime(fmt)

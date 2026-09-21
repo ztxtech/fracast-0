@@ -1,13 +1,12 @@
-"""频率口径单元门（CPU 可跑）：band_of_freq 与 freq_to_seconds 的边界。
+"""CPU tests for frequency parsing and band classification.
 
-为什么单独立这道门（2026-09-15 实测 bug）：
-pandas 的 "MS"（月初）、"Q-DEC"（季末）、"A-DEC"（年末）、"W-SUN" 都以字母
-结尾；旧解析只用 `endswith("S")` 判秒，导致 MS 被当成秒级、Q-DEC/A-DEC/W-SUN
-落到兜底值 —— 训练侧时间戳与频段配平都会错 ✗。这些别名在官方复现线里真实出现
-过，所以必须用固定断言锁住，不能再靠“看起来差不多” ✓。
+Pandas aliases such as MS, Q-DEC, A-DEC, and W-SUN end with letters. Treating
+the suffix S as seconds misclassifies these values and changes pretraining
+timestamps and band balancing. These tests pin the shared mappings.
 
-用法：env -u PYTHONPATH .venv/bin/python script/tests/test_freq.py
+Run with: env -u PYTHONPATH .venv/bin/python script/tests/test_freq.py
 """
+
 from __future__ import annotations
 
 import sys
@@ -25,13 +24,13 @@ fails: list[str] = []
 
 def check(name: str, got, want) -> None:
     ok = got == want
-    print(f"  {'✓' if ok else '✗'} {name}: got={got!r} want={want!r}")
+    print(f"  {'PASS' if ok else 'FAIL'} {name}: got={got!r} want={want!r}")
     if not ok:
         fails.append(name)
 
 
 def main() -> int:
-    print("① freq_to_seconds：秒/分/时/日/周/月/季/年 + 起始别名")
+    print("1. freq_to_seconds: seconds through yearly aliases")
     cases = {
         "S": 1, "4S": 4, "10S": 10,
         "T": 60, "5T": 300, "15T": 900, "10min": 600, "MIN": 60,
@@ -45,10 +44,10 @@ def main() -> int:
     }
     for freq, want in cases.items():
         check(f"freq_to_seconds({freq!r})", freq_to_seconds(freq), want)
-    check("训练侧 re-export 同一实现（禁止再抄一份）",
+    check("training-side helper reuses the shared implementation",
           shard_freq_to_seconds is freq_to_seconds, True)
 
-    print("② band_of：MS/QS/AS 不能被吞进 second")
+    print("2. band_of: month, quarter, and year aliases are not seconds")
     band_cases = {
         "10S": "second", "4S": "second", "S": "second",
         "5T": "subhour", "15T": "subhour", "MIN": "subhour",
@@ -62,9 +61,9 @@ def main() -> int:
         check(f"band_of({freq!r})", band_of(freq), want)
 
     if fails:
-        print(f"\n✗ 失败 {len(fails)} 项：{fails}")
+        print(f"\nFAIL: {len(fails)} checks failed: {fails}")
         return 1
-    print("\n✓ 频率口径全部通过")
+    print("\nPASS: all frequency checks passed")
     return 0
 
 

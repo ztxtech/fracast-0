@@ -1,20 +1,14 @@
-# 语料构建：fev-bench（autogluon/fev_datasets，评估缺陷研究用）→ fast 格式
+# Build the fev-bench fast corpus.
 #
-# 背景（2026-09-13 二次复检）：`data/fev/` 已下载 49 个数据集 / 100 个 parquet，
-# 但从未转换。schema = ['id','timestamp','target']（timestamp 是数组列），
-# 与 `dataport/build_corpus.py::iter_parquet_generic` 的混合 schema 路径天然对口 ✓。
-#
-# 跑法（CPU/IO 任务，不占 GPU）：
-#   .venv/bin/python main.py config/corpus/fev_full.yaml --list
-#   .venv/bin/python main.py config/corpus/fev_full.yaml --workers 4
-#   env -u PYTHONPATH .venv/bin/python script/corpus/merge_corpus_parts.py --corpus data/corpus_fast/fev
+# Source schema: id, timestamp, target. The timestamp and target fields are
+# array-valued columns.
 _run:
   kind: build_corpus
   tag: corpus_fev
   grid:
-    part: [0, 1, 2, 3]          # 数字 → out 目录 part0/part1…（读取器按 p* 扫，part0 也可 ✓）
+    part: [0, 1, 2, 3]
 src: data/fev
 out: data/corpus_fast/fev/{grid}
-parts: 4             # 49 个数据集 / 630MB → 4 路足够
+parts: 4
 shard_gb: 4
 balance: bytes

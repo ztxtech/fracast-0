@@ -1,25 +1,8 @@
-"""CorpusDataset：新语料（连续 mmap + 全局 offsets）的训练端读取器。
+"""Dataset reader for the contiguous mmap corpus layout.
 
-格式出处：写出端 `dataport/build_corpus.py`、流程 `pipeline/build_corpus.py` ✓。
-每个 part 目录 `p<k>/` 里（转换完才有 index.npz / manifest.json ✓）：
-
-    shardNNNN.values.f32.npy   float32 连续数据区（所有序列首尾相接）
-    shardNNNN.offsets.npy      int64 N+1 → 第 i 条 = values[o[i]:o[i+1]]（O(1) ✓）
-    shardNNNN.lengths.npy      int32 N
-    shardNNNN.freq_id.npy      int16 N（**part 内局部**频率编号 → 本文件重映射 ✓）
-    shardNNNN.ds_id.npy        int16 N（part 内局部数据集编号）
-    shardNNNN.ts.npy           int64 N（起始时间戳，日历特征用 ✓）
-    index.npz / manifest.json  行数、点数、逐分片行数（构造行→分片映射用 ✓）
-    freqs.txt / datasets.txt   局部编号 → 名字
-
-与 `ShardDataset` 的关系（PLAN #7 已定 ✓）：**子类化，只覆盖两处** ——
-  ① `__init__`：索引改从 `index.npz` + `manifest.json` 构造；
-  ② `_load_row`：用 `offsets` 做 O(1) 变长取行（**不重排数据** ✓），`valid = isfinite(values)`。
-窗口构造 / 金字塔 / 归一化 / target / SNaive 锚全部继承父类
-→ 与旧分片语料走**同一条语义** ✓（不会训练和评测两套口径 ✗）。
-
-约定：本文件没有 CLI ✗（主入口只有根目录 `main.py` ✓）；
-训练侧统一从 `dataport/dataport.py::build_train_loaders(cfg)` 进来 ✓。
+Each completed part contains one or more data shards, a global index, and a
+manifest.  The reader remaps part-local frequency and dataset identifiers and
+reuses the window construction implemented by ``ShardDataset``.
 """
 from __future__ import annotations
 
@@ -33,7 +16,7 @@ from dataport.shard_dataset import ShardDataset
 
 
 def _part_key(p: Path) -> tuple[int, str]:
-    """p<k> → 按 k 数值排序（p2 要排在 p10 前面 ✓）。"""
+    """Sort part directories by numeric suffix rather than lexicographically."""
     digits = p.name[1:]
     return (int(digits) if digits.isdigit() else 1 << 30, p.name)
 
@@ -45,12 +28,10 @@ def _read_lines(path: Path) -> list[str]:
 
 
 def scan_corpus(roots, verbose: bool = True, dataset_include=None) -> dict:
-    """扫语料根（可多个）→ 训练索引；part 内的局部编号在这里统一重映射 ✓。
+    """Scan one or more corpus roots and build a global training index.
 
-    · 只认**已写完**的 part（有 `p*/index.npz` ✓）；没写完的（转换中断）跳过并打印 ✗，
-      不因为一个 part 没跑完就拖死整条训练管线 ✓。
-    · `manifest.json` 的逐分片行数用来把「全局行号」映射到（分片, 分片内行号），
-      并当场校验 `Σ 分片行数 == index.npz 行数` ✓（不一致早失败，别拿错位数据训练 ✗）。
+    Incomplete parts are skipped.  Shard row counts are validated against the
+    global index before any data is exposed to training.
     """
     roots = [Path(roots)] if isinstance(roots, (str, Path)) else [Path(r) for r in roots]
     stems: list[str] = []
@@ -67,7 +48,7 @@ def scan_corpus(roots, verbose: bool = True, dataset_include=None) -> dict:
 
     for root in roots:
         if not root.exists():
-            raise FileNotFoundError(f"语料目录不存在: {root}")
+            raise FileNotFoundError(f"corpus directory does not exist: {root}")
         all_parts = sorted((p for p in root.glob("p*") if p.is_dir()), key=_part_key)
         done = [p for p in all_parts if (p / "index.npz").exists()]
         skipped.extend(f"{root.name}/{p.name}" for p in all_parts if p not in done)
@@ -80,15 +61,18 @@ def scan_corpus(roots, verbose: bool = True, dataset_include=None) -> dict:
             counts = np.asarray([int(r) for _, r, _ in manifest["shards"]], dtype=np.int64)
             if int(counts.sum()) != int(lengths.size):
                 raise ValueError(
-                    f"{part}: manifest 声明 {int(counts.sum())} 行 ≠ index.npz {lengths.size} 行 "
-                    f"—— 该 part 的转换可能中断了 ✗（数据不自洽不许进训练）")
+                    f"{part}: manifest reports {int(counts.sum())} rows but "
+                    f"index.npz contains {lengths.size}"
+                )
             if lengths.size == 0:
                 continue
-            # part 内局部频率编号 → 全局编号（局部编号只在本 part 有意义 ✓）
+            # Remap part-local frequency identifiers to global identifiers.
             local = _read_lines(part / "freqs.txt")
             if local and int(part_freq.max()) >= len(local):
-                raise ValueError(f"{part}: freq_id 到 {int(part_freq.max())}，"
-                                 f"但 freqs.txt 只有 {len(local)} 条 ✗")
+                raise ValueError(
+                    f"{part}: freq_id reaches {int(part_freq.max())} but "
+                    f"freqs.txt contains {len(local)} entries"
+                )
             remap = np.zeros(max(len(local), 1), dtype=np.int16)
             for i, name in enumerate(local):
                 if name not in freq_map:
@@ -98,8 +82,10 @@ def scan_corpus(roots, verbose: bool = True, dataset_include=None) -> dict:
 
             local_ds = _read_lines(part / "datasets.txt")
             if local_ds and int(part_ds.max()) >= len(local_ds):
-                raise ValueError(f"{part}: ds_id 到 {int(part_ds.max())}，"
-                                 f"但 datasets.txt 只有 {len(local_ds)} 条 ✗")
+                raise ValueError(
+                    f"{part}: ds_id reaches {int(part_ds.max())} but "
+                    f"datasets.txt contains {len(local_ds)} entries"
+                )
             ds_remap = np.zeros(max(len(local_ds), 1), dtype=np.int32)
             for i, name in enumerate(local_ds):
                 key = (root.name, name)
@@ -108,10 +94,8 @@ def scan_corpus(roots, verbose: bool = True, dataset_include=None) -> dict:
                     datasets.append(f"{root.name}/{name}")
                 ds_remap[i] = ds_map[key]
 
-            # 数据集白名单（2026-09-15 用户定：只保留 TinyCast 实际用到的语料 ✓）。
-            # 两种写法（本地名字见各 part 的 `datasets.txt` ✓）：
-            #   "pret"                    → **整个 root** 全要（Pretrain 的 152 个数据集全保留）
-            #   "chronos/training_corpus" → 只保留该 root 下的这一个数据集（KernelSynth）
+            # Optional dataset allowlist.  A root name includes all datasets under
+            # that root; ``root/dataset`` selects one dataset.
             part_keep = None
             if dataset_include is not None:
                 inc = set(dataset_include)
@@ -120,7 +104,7 @@ def scan_corpus(roots, verbose: bool = True, dataset_include=None) -> dict:
                         [i for i, nm in enumerate(local_ds)
                          if f"{root.name}/{nm}" in inc], dtype=np.int64)
                     if keep_local.size == 0:
-                        continue    # 本 part 一行都不要 → 整片跳过（不建索引、不 mmap ✓）
+                        continue
                     part_keep = np.isin(part_ds, keep_local)
             base = len(stems)
             starts = np.concatenate([[0], np.cumsum(counts)])[:-1]
@@ -142,7 +126,8 @@ def scan_corpus(roots, verbose: bool = True, dataset_include=None) -> dict:
             for k in range(counts.size):
                 if not (part / f"shard{k:04d}.values.f32.npy").exists():
                     raise FileNotFoundError(
-                        f"{part}: 缺 shard{k:04d}.values.f32.npy ✗")
+                        f"{part}: missing shard{k:04d}.values.f32.npy"
+                    )
                 stems.append(str(part / f"shard{k:04d}"))
             n_shards += int(counts.size)
             n_rows += n_keep
@@ -151,15 +136,16 @@ def scan_corpus(roots, verbose: bool = True, dataset_include=None) -> dict:
 
     if not stems:
         raise FileNotFoundError(
-            f"{[str(r) for r in roots]} 下没有已完成的 part（需要 p*/index.npz）—— "
-            f"先跑 `main.py config/corpus/<名>.yaml`，再跑 `script/corpus/merge_corpus_parts.py` ✓")
+            f"no completed corpus parts found under {[str(r) for r in roots]}; "
+            "run the corpus build flow and merge the parts first"
+        )
     if verbose and skipped:
-        print(f"[corpus] 跳过未完成的 part（无 index.npz）: {', '.join(skipped)}", flush=True)
+        print(f"[corpus] skipped incomplete parts: {', '.join(skipped)}", flush=True)
 
     return {
         "roots": [str(r) for r in roots],
         "stems": stems,
-        # int32 够用（分片数 ≪ 2^31、单分片行数 ≪ 2^31）且比 int64 省一半内存 ✓
+        # int32 is sufficient for shard and row counts and halves memory use.
         "shard_ids": np.concatenate(shard_ids).astype(np.int32),
         "row_ids": np.concatenate(row_ids).astype(np.int32),
         "freq_ids": np.concatenate(freq_ids).astype(np.int16),
@@ -175,7 +161,7 @@ def scan_corpus(roots, verbose: bool = True, dataset_include=None) -> dict:
 
 
 class CorpusDataset(ShardDataset):
-    """新语料训练端：连续 mmap + 全局 offsets；窗口语义继承 `ShardDataset` ✓。"""
+    """Training dataset for contiguous mmap corpora with global offsets."""
 
     def __init__(self, corpus_dirs, cfg, train: bool = True, cache_shards: int = 64):
         self.dir = Path(corpus_dirs[0] if isinstance(corpus_dirs, (list, tuple))
@@ -191,26 +177,26 @@ class CorpusDataset(ShardDataset):
         self._freq_ids = idx["freq_ids"][keep]
         self._ds_ids = idx["ds_ids"][keep]
         self._datasets = idx["datasets"]
-        # 逐行季节 scale 侧车缓存（合成分片带官方 `scale_factors.f32` → 直接用真值，不靠 freq 推 ✓）
+        # Cache optional per-row seasonal scale sidecars.
         self._scale_cache: dict[str, np.ndarray] = {}
         self._scale_missing: set[str] = set()
 
         self._init_windows(cfg, train, cache_shards)
-        self.fast_layout = True      # 本布局恒为连续 mmap（`_load_row` 直接用 offsets ✓）
+        self.fast_layout = True
         self._ts_cache: OrderedDict[str, np.ndarray] = OrderedDict()
         self.split = "train" if train else "val"
-        print(f"[corpus] {'+'.join(Path(r).name for r in idx['roots'])}: "
-              f"{idx['n_parts']} part / {idx['n_shards']} 分片 / {idx['n_rows']:,} 行 / "
-              f"{idx['n_points'] / 1e9:.2f}B 点 / {len(self._datasets):,} 数据集 "
-              f"→ {self.split} {len(self._shard_ids):,} 行",
-              flush=True)
+        print(
+            f"[corpus] {'+'.join(Path(r).name for r in idx['roots'])}: "
+            f"{idx['n_parts']} parts / {idx['n_shards']} shards / "
+            f"{idx['n_rows']:,} rows / {idx['n_points'] / 1e9:.2f}B points / "
+            f"{len(self._datasets):,} datasets -> {self.split} "
+            f"{len(self._shard_ids):,} rows",
+            flush=True,
+        )
 
     def _load_row(self, shard_file: str, row: int
                   ) -> tuple[np.ndarray, np.ndarray, int]:
-        """返回 (values[T], valid[T], ts0)：offsets O(1) 取行 ✓，valid=isfinite ✓。
-
-        本布局**没有 valid 文件** ✓ —— 缺失由 NaN 承载（写出端保留 NaN），掩码在这里现算。
-        """
+        """Return ``(values, valid, start_time)`` for one row."""
         item = self._cache.get(shard_file)
         if item is None:
             item = {
@@ -229,7 +215,7 @@ class CorpusDataset(ShardDataset):
         return values, np.isfinite(values), int(item["ts"][row])
 
     def _sidecar_scale(self, i: int):
-        """逐行季节 scale 侧车：`<stem>.scale.f32.npy`（没有则 None → 回退 freq 推导 ✓）。"""
+        """Read an optional per-row scale sidecar."""
         stem = self._shard_files[int(self._shard_ids[i])]
         if stem in self._scale_missing:
             return None
@@ -248,7 +234,7 @@ class CorpusDataset(ShardDataset):
         return v if np.isfinite(v) and v > 0 else None
 
     def _row_scale(self, row: int, freq: str) -> float:
-        """合成分片有侧车就用官方的逐行 scale；否则回退 freq → seasonal_scale_factor ✓。"""
+        """Use the sidecar scale when present; otherwise infer from frequency."""
         s = self._sidecar_scale(int(row))
         if s is not None:
             return float(s)

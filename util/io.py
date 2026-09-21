@@ -7,14 +7,14 @@ from typing import Any
 
 
 def ensure_dir(path: str | Path) -> Path:
-    """确保目录存在并返回对应的 Path。"""
+    """Create a directory if needed and return its path."""
     path = Path(path)
     path.mkdir(parents=True, exist_ok=True)
     return path
 
 
 def save_json(path: str | Path, data: Any, indent: int = 2) -> Path:
-    """将数据以 UTF-8 JSON 写入文件，自动创建父目录。"""
+    """Write UTF-8 JSON and create parent directories."""
     path = Path(path)
     ensure_dir(path.parent)
     path.write_text(
@@ -25,5 +25,5 @@ def save_json(path: str | Path, data: Any, indent: int = 2) -> Path:
 
 
 def load_json(path: str | Path) -> Any:
-    """读取 UTF-8 JSON 文件并返回解析结果。"""
+    """Read a UTF-8 JSON file."""
     return json.loads(Path(path).read_text(encoding="utf-8"))

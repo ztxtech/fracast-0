@@ -4,7 +4,7 @@ import random
 
 
 def set_seed(seed: int) -> None:
-    """固定 Python 随机种子；若已安装 numpy/torch 则一并固定。"""
+    """Seed Python, NumPy, and PyTorch when those packages are installed."""
     random.seed(seed)
     try:
         import numpy as np

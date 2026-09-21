@@ -1,7 +1,8 @@
-"""Pipeline dispatch for corpus preparation and pretraining.
+"""Configuration-driven pipeline dispatch for corpus preparation and pretraining.
 
-规范：流程放本目录 ✓；模型在 model/、组件在 module/、数据在 dataport/ ✓。
-对外只暴露一个入口：`from pipeline import Pipeline` → `Pipeline(config).run()`。
+Public entry point: ``from pipeline import Pipeline`` followed by
+``Pipeline(config).run()``. Model code lives in ``model/``, reusable
+components in ``module/``, and data access in ``dataport/``.
 """
 from pipeline.pipeline import Pipeline
 

@@ -1,12 +1,10 @@
-"""FracCast 训练后 INT8 fake-quant。
+"""Post-training INT8 fake quantization for FracCast.
 
-口径逐行对齐官方 TinyCast `tinycast/quant.py`
-（https://github.com/raws-labs/tinycast）：
-权重使用逐输出通道对称 INT8；`w8` 只量权重，`w8a8` 再开逐张量动态激活量化。
-RMSNorm、周期图、归一化统计和 bias 保持浮点。
-
-FracCast 的 depthwise 卷积用 `F.conv1d + dw_weight` 实现，不是 `nn.Conv1d`；
-本模块额外覆盖这些 `dw_weight`，避免直接复用官方函数时漏量主干/解码卷积。
+Weights use symmetric per-output-channel quantization. ``w8`` quantizes weights
+only; ``w8a8`` also enables per-tensor dynamic activation quantization. RMSNorm,
+periodogram features, normalization statistics, and biases remain floating point.
+FracCast implements depthwise convolution with ``F.conv1d`` and a ``dw_weight``
+parameter, so those weights are handled explicitly alongside Linear and Conv1d.
 """
 from __future__ import annotations
 
@@ -18,7 +16,7 @@ _QMIN, _QMAX = -128, 127
 
 @torch.no_grad()
 def fake_quant_weight_per_outchannel(weight: torch.Tensor) -> torch.Tensor:
-    """按输出通道做对称 INT8 fake-quant；Linear 与 Conv1d 的 axis 0 同义。"""
+    """Apply symmetric INT8 fake quantization per output channel."""
     reduce_dims = tuple(d for d in range(weight.dim()) if d != 0)
     amax = weight.abs().amax(dim=reduce_dims, keepdim=True).clamp_(min=1e-12)
     scale = amax / _QMAX
@@ -27,7 +25,7 @@ def fake_quant_weight_per_outchannel(weight: torch.Tensor) -> torch.Tensor:
 
 
 def fake_quant_act_dynamic(x: torch.Tensor) -> torch.Tensor:
-    """逐张量对称 INT8 动态激活 fake-quant。"""
+    """Apply per-tensor symmetric INT8 dynamic activation quantization."""
     if not torch.is_floating_point(x):
         return x
     amax = x.detach().abs().amax().clamp(min=1e-12)
@@ -46,10 +44,10 @@ def _conv_post_hook(_module, _inputs, output):
 
 
 def quantize_int8_(model: nn.Module, mode: str = "w8") -> nn.Module:
-    """就地应用 FracCast INT8 fake-quant；`mode` 取 `w8` / `w8a8`。"""
+    """Apply FracCast INT8 fake quantization in place."""
     mode = mode.strip().lower()
     if mode not in {"w8", "w8a8"}:
-        raise ValueError(f"未知 INT8 mode {mode!r}（应为 w8 或 w8a8）")
+        raise ValueError(f"unknown INT8 mode {mode!r}; expected w8 or w8a8")
 
     n_linear = n_depthwise = 0
     with torch.no_grad():
@@ -71,6 +69,9 @@ def quantize_int8_(model: nn.Module, mode: str = "w8") -> nn.Module:
                 n_depthwise += 1
 
     suffix = " + per-tensor dynamic activation quant" if mode == "w8a8" else ""
-    print(f"[quant] INT8 {mode}: Linear/Conv1d 权重 {n_linear} 个、"
-          f"FracCast depthwise 权重 {n_depthwise} 个{suffix}", flush=True)
+    print(
+        f"[quant] INT8 {mode}: {n_linear} Linear/Conv1d weights, "
+        f"{n_depthwise} depthwise weights{suffix}",
+        flush=True,
+    )
     return model

@@ -1,14 +1,14 @@
-"""频率与时间工具（唯一实现：全项目共用，禁止各自再写一份）。
+"""Shared frequency and timestamp helpers.
 
-历史问题：freq_to_seconds 曾在 4 处重复实现（model/pyramid.py、
-dataport/shard_dataset.py、model/fractal/predictor.py、module/freq.py），
-口径漂移风险高，现统一到此文件。
-
-解析口径（2026-09-15 修）：pandas 的 "MS / QS / AS / YS / W-SUN" 等别名
-都以字母结尾，不能只用 `endswith("S")` 判秒 ✗ —— 那会把 MS（月初）当成秒级，
-把 Q-DEC / A-DEC / W-SUN 落到兜底值。这里先拆出「数字 + 单位」，再按单位表映射；
-未知串沿用训练侧历史兜底 3600s ✓。
+A single implementation keeps frequency semantics consistent between corpus
+construction and model code. Pandas aliases such as ``MS``, ``QS-DEC``, and
+``W-SUN`` do not end in a simple seconds suffix, so parsing first extracts the
+numeric multiplier and unit and then maps the unit explicitly. Unknown values
+retain the historical hourly fallback.
 """
+
+
+
 from __future__ import annotations
 
 import re
@@ -30,7 +30,7 @@ _UNIT_SECONDS = {
 
 
 def _unit_seconds(unit: str) -> int:
-    """单位串 → 秒；逐字符去掉 B/C/S 等 pandas 变体前缀（BMS → MS ✓）。"""
+    """Strip pandas business-day and start/end variants before mapping a unit."""
     u = unit
     while len(u) > 1 and u not in _UNIT_SECONDS:
         u = u[1:]
@@ -38,10 +38,10 @@ def _unit_seconds(unit: str) -> int:
 
 
 def freq_to_seconds(freq: str) -> int:
-    """GIFT-Eval / 语料频率串 → 每步秒数（构造合成 unix 时间戳用）。
+    """Convert a frequency string to seconds per step.
 
-    例：S=1、10S=10、15T=900、6H=21600、D=86400、W-SUN=604800、
-    M=MS=2592000、Q-DEC=7889400、A-DEC=31557600；未知 "?" 沿用 3600s ✓。
+    Examples: ``S`` is 1, ``10S`` is 10, ``15T`` is 900, ``6H`` is 21600,
+    ``D`` is 86400, and ``W-SUN`` is 604800. Unknown values use 3600 seconds.
     """
     f = str(freq).strip().upper()
     m = _FREQ_RE.match(f)
@@ -84,7 +84,7 @@ def get_seasonality(freq: str) -> int:
 
 
 def start_to_unix_seconds(start) -> int:
-    """gluonts start（pandas Timestamp / datetime64 / str）→ unix 秒。"""
+    """Convert a GluonTS start timestamp to Unix seconds."""
     try:
         return int(np.datetime64(start, "s").astype("int64"))
     except Exception:

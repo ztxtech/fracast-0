@@ -1,19 +1,16 @@
-"""流程：训练我们的模型 → 定期验证 → 保存 checkpoint。
+"""Pretrain FracCast, run periodic validation, and write checkpoints.
 
-**本文件没有 CLI** ✗ —— 唯一入口是根目录 `main.py`（配置驱动 ✓）：
+This module has no command-line interface. Invoke it through the root
+``main.py`` entry point with a configuration file, for example:
 
     python main.py config/fraccast/pretrain_full.yaml
     python main.py config/fraccast/pretrain_smoke.yaml
 
-config 键：`model.*`（结构 + 超参）、`pyramid.*`、`heads.*`、`repr.*`、`data.*`、
-`train.*`（`out_dir` 必填）✓；模型侧不钉死任何可调数值 ✗（否则网格扫不动 ✓）。
-
-断点续跑（用户 2026-09-17 定：程序必须能停，也必须能接着跑 ✓）——`train.resume`：
-`auto`（默认，读 `<out_dir>/last.pt`）/ `false`（强制从头）/ `<ckpt 路径>`。
-checkpoint 里存齐**权重 + 优化器动量 + 全部随机源 + 全局步 + best_val**；
-恢复时数据流按 `step × grad_accum` 个 micro batch 精确跳批（sampler 的 RNG
-逐位重放 ✓），既不重读已训数据，也不改后续样本顺序 ✓。
-要真·从头重训：设 `train.resume: false`（或把 last.pt 挪走）✓。
+All tunable values come from ``model``, ``pyramid``, ``heads``, ``repr``,
+``data``, and ``train`` sections. Checkpoints store model state, optimizer
+state, RNG state, global step, and best validation loss so interrupted runs
+can resume exactly. The sampler replays ``step * grad_accum`` micro batches,
+which preserves batch order without rereading completed samples.
 """
 from __future__ import annotations
 
@@ -41,7 +38,7 @@ def _build_model(cfg: dict):
 
 
 def _load_resume(out: Path, t_cfg: dict):
-    """按 `train.resume` 找 checkpoint：返回 `(ckpt, path)`；不续跑就是 `(None, None)` ✓。"""
+    """Resolve ``train.resume`` and return ``(checkpoint, path)`` or ``(None, None)``."""
     spec = t_cfg.get("resume", "auto")
     if spec is None or spec is False or str(spec).lower() in (
             "false", "off", "none", "0", ""):
@@ -50,20 +47,20 @@ def _load_resume(out: Path, t_cfg: dict):
     if not path.is_absolute():
         path = Path.cwd() / path
     if not path.exists():
-        print(f"[resume] {path} 不存在 → 从头训练 ✓", flush=True)
+        print(f"[resume] {path} does not exist; starting a new run", flush=True)
         return None, None
     ckpt = torch.load(path, map_location="cpu", weights_only=False)
     if not isinstance(ckpt, dict) or "core" not in ckpt:
-        raise ValueError(f"[resume] {path} 不像训练 checkpoint（没有 core）✗")
+        raise ValueError(f"Invalid training checkpoint without model state: {path}")
     print(f"[resume] {path} step={int(ckpt.get('step') or 0):,} "
           f"chunk={ckpt.get('chunk')}"
-          f" | 优化器动量={'有 ✓' if ckpt.get('optim') else '无 ✗（旧格式只能热启动）'}"
-          f" | 随机源={'有 ✓' if ckpt.get('rng') else '无 ✗'}", flush=True)
+          f" | optimizer={'yes' if ckpt.get('optim') else 'no (warm start only)'}"
+          f" | RNG={'yes' if ckpt.get('rng') else 'no'}", flush=True)
     return ckpt, path
 
 
 def _restore_rng(ckpt, device: str, rndmod, npmod, aug_rng) -> None:
-    """还原 checkpoint 里的全部随机源（漏一个，续跑就不是原来那条轨迹 ✓）。"""
+    """Restore every RNG state stored in a checkpoint."""
     rng = (ckpt or {}).get("rng") or {}
     if not rng:
         return
@@ -77,22 +74,17 @@ def _restore_rng(ckpt, device: str, rndmod, npmod, aug_rng) -> None:
         torch.cuda.set_rng_state_all(rng["cuda"])
     if "aug" in rng:
         aug_rng.setstate(rng["aug"])
-    print("[resume] 随机源已还原（python / numpy / torch / cuda / augment）✓",
+    print("[resume] Restored Python, NumPy, PyTorch, CUDA, and augmentation RNG",
           flush=True)
 
 
 def _add_committing(loss, qh, tgt_d, copy_h, tgt_mask, q_t, T_avail,
                     cfg, device, head):
-    """把官方 TinyCast 的门控 committing 项加到 pinball 损失上（train.commit_w>0 时）。
-
-    官方来源：https://github.com/raws-labs/tinycast `tinycast/losses.py`。
-    只作用于**中位数**，以 `seasonal_copy_baseline` 为参照，窗口级门控（copy 更好才罚）。
-    默认 commit_w=0 → 直接返回原 loss（数值逐位不变）。
-    """
+    """Add TinyCast's gated committing term to the pinball loss when enabled."""
     cw = float((cfg.get("train") or {}).get("commit_w", 0.0) or 0.0)
     if cw <= 0 or copy_h is None or loss is None:
         return loss
-    if hasattr(head, "combined_loss"):      # StudentT 头不支持（旧分支）
+    if hasattr(head, "combined_loss"):      # Student-t heads use another objective.
         return loss
     from module.losses.tinycast import committing_loss
     q_mid = q_t.shape[0] // 2
@@ -104,16 +96,7 @@ def _add_committing(loss, qh, tgt_d, copy_h, tgt_mask, q_t, T_avail,
 
 
 def _augment_window(win, winm, sf, aug, rng):
-    """官方 A.2 的四个数据增强（各 p=0.5，逐 batch 抽 ✓）。
-
-    官方论文 A.2 给出数据增强口径，但没有发布对应实现：时间翻转 / 符号翻转 /
-    整数降采样 {2,3,4} / mixup。
-    我们的落地口径（官方没给细节，属于**声明过的偏离** ✓）：
-      · 时间翻转 = 窗口按时间倒序（值与掩码一起翻）；
-      · 符号翻转 = 整体取负；
-      · 整数降采样 = 每第 k 点取一个，左侧补首值把目标段对齐回右端；
-      · mixup = 与批内随机重排的自己线性混合（λ~U(0,1)），掩码取交集。
-    """
+    """Apply the stochastic augmentations described by TinyCast appendix A.2."""
     if float(aug.get("time_flip", 0.0)) > 0 and rng.random() < float(aug["time_flip"]):
         win, winm = win.flip(1), winm.flip(1)
     if float(aug.get("sign_flip", 0.0)) > 0 and rng.random() < float(aug["sign_flip"]):
@@ -138,24 +121,16 @@ def _augment_window(win, winm, sf, aug, rng):
 
 
 def _rollout_loss(core, head, win, winm, sf, q_t, cfg, amp_scope, eps):
-    """官方 TinyCast 的 AR rollout（K 块 × p 步 + scheduled sampling）✓。
-
-    官方出处：https://github.com/raws-labs/tinycast `tinycast/train.py`
-      · `_rollout_loss`：末块之前把模型自己的中位数写回上下文（概率 ε），未观测位强制写回，
-        写回值 detach（是输入、不是梯度通路）✓；
-      · `_chunk_loss`：单块损失 = 掩码 pinball + 门控 committing；预测 clamp ±5、目标 clamp ±10、
-        上下文量程 ≤1e-4 的样本不计分；每块用**自己那段上下文**的统计量重新归一化（detach）✓。
-    我们只把「归一化 + 建金字塔」换成 torch 等价实现（`module/pyramid/levels.py`）✓。
-    """
+    """Run TinyCast-style autoregressive rollout with scheduled sampling."""
     from module.pyramid.levels import build_levels, window_minmax
     from module.losses.tinycast import committing_loss, seasonal_copy_baseline
 
     t_cfg, m_cfg = cfg["train"], cfg["model"]
     K = max(1, int(t_cfg.get("ar_chunks", 1) or 1))
-    p = int(head.horizon)                      # 单块步数 = 头一次输出的步数 ✓
+    p = int(head.horizon)
     L = int(win.shape[1]) - K * p
     ratios = list(cfg["pyramid"]["ratios"])
-    # 逐级 token 宽度：标量（全级同宽）或 `model.level_widths` 列表（粗级在前）✓
+    # Level widths are scalar (all levels equal) or coarse-to-fine.
     width = m_cfg.get("level_widths", m_cfg["W"])
     n_levels = len(ratios) + 1
     commit_w = float(t_cfg.get("commit_w", 0.0) or 0.0)
@@ -175,8 +150,7 @@ def _rollout_loss(core, head, win, winm, sf, q_t, cfg, amp_scope, eps):
         with amp_scope():
             lv, lm, lc = build_levels(ctxn, ctxm, ratios, width, n_levels)
             h = core(lv, lm, lc)
-            # ctx/ctx_mask = **归一化后**的上下文（只有头开了 future_conv 才会用到；
-            # 关掉时多传两个 kwarg 不参与任何计算 ⇒ 逐位等于历史实现 ✓）
+            # The normalized context is consumed only when future_conv is enabled.
             qh = head.forward_horizon(h, last_obs=lv[:, -1, -1].unsqueeze(-1),
                                       ctx=ctxn, ctx_mask=ctxm)
         qh = qh.clamp(-pred_clamp, pred_clamp)
@@ -209,18 +183,14 @@ def _rollout_loss(core, head, win, winm, sf, q_t, cfg, amp_scope, eps):
 
 
 def _average_checkpoints(out: Path, n_avg: int, cfg: dict):
-    """最后 n 个周期 ckpt 均匀平均（官方收尾口径 ✓）；返回写出路径或 None。
-
-    官方出处：https://github.com/raws-labs/tinycast `tinycast/train.py` 与
-    `tinycast/export.py`；released 权重 = 最后 8 个周期 ckpt 的均匀平均。
-    """
+    """Uniformly average the final ``n_avg`` chunk checkpoints."""
     cks = sorted(out.glob("chunk*.pt"))
     if len(cks) < 2:
         return None
     cks = cks[-max(1, int(n_avg)):]
     core_sum, head_sum, n = {}, {}, 0
     for pth in cks:
-        # 本地训练产物包含 NumPy 标量；PyTorch 2.6 默认 safe-load 会拒绝。
+        # Checkpoints may contain NumPy scalar types rejected by safe loading.
         st = torch.load(pth, map_location="cpu", weights_only=False)
         for k, v in st["core"].items():
             core_sum[k] = core_sum.get(k, torch.zeros_like(v)) + v.float()
@@ -239,17 +209,18 @@ def _average_checkpoints(out: Path, n_avg: int, cfg: dict):
 
 def evaluate(core, head, loader, device, q_t, max_batches: int = 20,
              shard_mode: bool = False, use_anchor: bool = False) -> float:
-    """验证集抽样评估（max_batches 个 batch），全量留给正式评测。"""
-    # 必须与训练用同一条头：horizon head 走 forward_horizon，否则评的是没训练的分支。
+    """Evaluate sampled validation batches."""
+    # Use the same horizon path that training optimizes.
     core.eval()
     tot, n = 0.0, 0
-    is_st = hasattr(head, "combined_loss")   # StudentT 分布头
+    is_st = hasattr(head, "combined_loss")   # Student-t distribution head.
     with torch.no_grad():
         for bi, batch in enumerate(loader):
             if bi >= max_batches:
                 break
             if shard_mode:
-                # 12 字段 = 附带季节复制参照；11 字段 = 旧格式（向后兼容）
+                # Current batches include a seasonal copy target; 11-field
+                # batches are retained for backward compatibility.
                 if len(batch) >= 12:
                     (xn, xm, xc, lids, xt, xta, tgt, loc, scale,
                      anchor, tgt_mask, copy_h) = batch[:12]
@@ -263,7 +234,7 @@ def evaluate(core, head, loader, device, q_t, max_batches: int = 20,
             h = core(xn.to(device), xm.to(device), xc.to(device),
                      level_ids=lids.to(device), ts_norm=xt.to(device),
                      t_abs=xta.to(device))
-            # multi_horizon: 目标是多步段 [B, H]，用末列（最远期）做单点评估
+            # For multi-horizon targets, evaluate the final forecast point.
             if tgt.dim() == 2 and tgt.shape[1] > 1:
                 tgt_eval = tgt[:, -1]
                 mask_eval = tgt_mask[:, -1] if tgt_mask is not None else None
@@ -277,9 +248,9 @@ def evaluate(core, head, loader, device, q_t, max_batches: int = 20,
                                     mu_[:, -1], sc_[:, -1])
                 loss = nll
             elif getattr(head, "horizon", 0) > 0:
-                # 与训练一致：horizon head 一次性输出整段 H 步分位数
+                # Emit the full horizon exactly as training does.
                 lo_d = xn.reshape(xn.shape[0], -1)[:, -1].unsqueeze(-1).to(device)
-                # 头的 ctx 口径 = 与编码器输入同一归一化空间的上下文（reshape 不改元素序 ✓）
+                # The head consumes context in the normalized encoder space.
                 _ctx = xn.reshape(xn.shape[0], -1).to(device)
                 _cm = xm.reshape(xm.shape[0], -1).to(device)
                 if use_anchor:
@@ -290,7 +261,7 @@ def evaluate(core, head, loader, device, q_t, max_batches: int = 20,
                     qh = head.forward_horizon(h, last_obs=lo_d,
                                               ctx=_ctx, ctx_mask=_cm)
                 H = min(qh.shape[1], tgt.shape[-1])
-                # 整段 horizon 的 masked pinball（比只看末点稳定得多）
+                # Masked pinball over the full horizon is more stable.
                 qf = qh[:, :H].reshape(-1, q_t.shape[0])
                 tf = tgt[:, :H].reshape(-1).to(device)
                 mf = (tgt_mask[:, :H].reshape(-1).to(device)
@@ -308,17 +279,10 @@ def evaluate(core, head, loader, device, q_t, max_batches: int = 20,
 
 
 def run(config: dict) -> dict:
-    """按 config 训练一次，返回数值摘要（会进该 run 的 metrics.json ✓）。
-
-    调用链：main.py → `Pipeline(config).run()` → 本函数 ✓ —— 参数全在 config 里，
-    本文件没有 main / 没有 argparse ✗（用户 2026-09-13 定）。
-    """
+    """Train once from a resolved configuration and return the run summary."""
     cfg = dict(config)
 
-    # ★ 显式种子（2026-09-12「噪声底危机」修复）
-    # 背景：此前只有 data.seed 控制**数据顺序**（dataset 内部用 default_rng），
-    #   而 torch 的 RNG（权重初始化、dropout）**从未设种子** → 同配方重复极差实测 0.0761(6.7%)，
-    #   且实验不可复现。这里统一固定 random/numpy/torch，并把实际 seed 记进 config_used。
+    # Seed every source that can alter sampling or model initialization.
     import random as _rndmod
     import numpy as _npmod
     _seed = int(cfg.get("train", {}).get("seed", cfg.get("data", {}).get("seed", 42)))
@@ -328,36 +292,36 @@ def run(config: dict) -> dict:
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(_seed)
     cfg.setdefault("train", {})["seed_used"] = _seed
-    print(f"  [seed] random/numpy/torch 固定为 {_seed}（train.seed 优先，回退 data.seed）", flush=True)
+    print(f"  [seed] random/numpy/torch set to {_seed}", flush=True)
 
     t_cfg = cfg["train"]
     out = Path(t_cfg["out_dir"])
     out.mkdir(parents=True, exist_ok=True)
 
-    # ── 断点续跑（用户 2026-09-17 定：必须能停、也必须能接着跑 ✓）──
-    # 恢复四件套：权重 / 优化器动量 / 全局步 / 随机源；数据流另按 step 精确跳批 ✓
+    # Resume restores weights, optimizer moments, global step, and random sources.
+    # The sampler skips every micro batch consumed by completed steps.
     resume_ckpt, resume_path = _load_resume(out, t_cfg)
     resume_step = int((resume_ckpt or {}).get("step") or 0)
-    if resume_path is not None:      # 写进 config_used，事后一眼能看出这条是续跑的 ✓
+    if resume_path is not None:
         t_cfg["resume_from"] = str(resume_path)
     (out / "config_used.yaml").write_text(json.dumps(cfg, indent=1))
 
     try:
         from torch.utils.tensorboard import SummaryWriter
-        # 同 tag 重跑 = 全新实验：清旧事件，避免曲线叠加（TB 追加语义）
+        # TensorBoard appends events, so a rerun with the same tag starts clean.
         if (out / "tb").exists():
             import shutil
             shutil.rmtree(out / "tb")
         writer = SummaryWriter(log_dir=str(out / "tb"))
         try:
             m = cfg["model"]
-            # 实验说明卡（TB Text 页签呈现）：ID / 配方 / 验证问题
+            # A compact experiment card appears on the TensorBoard text tab.
             note = (t_cfg.get("note", "")
-                    or f"实验 {out.name}：{cfg['train'].get('out_dir','')}")
+                    or f"Experiment {out.name}: {cfg['train'].get('out_dir', '')}")
             writer.add_text(
                 "exp/note",
                 (f"**{out.name}**  |  {t_cfg.get('note', '')}\n\n"
-                 f"配方: family={m.get('family', 'fractal')} "
+                 f"Recipe: family={m.get('family', 'fractal')} "
                  f"d={m.get('d_model')} ff={m.get('d_ff')} h={m.get('n_heads')} "
                  f"L={m.get('n_layers')} loop={m.get('loop_iters', 1)} "
                  f"| anchor_snaive={m.get('anchor_snaive', False)} "
@@ -370,7 +334,7 @@ def run(config: dict) -> dict:
                  f"| steps={t_cfg['total_steps']} "
                  f"| head={cfg['heads']['forecast'].get('type', 'quantile')}"),
                 0)
-            # 旧版兼容：config 也写入
+            # Keep the plain config view alongside the experiment card.
             writer.add_text(
                 "exp/config",
                 (f"family={m.get('family', 'fractal')} "
@@ -385,8 +349,8 @@ def run(config: dict) -> dict:
         except Exception:
             pass
     except Exception:
-        writer = None   # TB 可选：无依赖时训练不中断
-    # 设备优先级: CUDA(远端) > MPS(Mac) > CPU；CUDA_VISIBLE_DEVICES 已隔离卡
+        writer = None   # TensorBoard is optional; training continues without it.
+    # Device preference: CUDA > MPS > CPU. CUDA_VISIBLE_DEVICES selects the GPU.
     if torch.cuda.is_available():
         device = "cuda"
     elif torch.backends.mps.is_available():
@@ -406,37 +370,31 @@ def run(config: dict) -> dict:
     core, head = _build_model(cfg)
     core, head = core.to(device), head.to(device)
 
-    # 续跑：权重必须在 torch.compile **之前**装 —— ckpt 里存的是剥掉 `_orig_mod.`
-    # 的裸键名，装进编译后的壳子会一个都对不上 ✗（2026-09-14 踩过同类坑）。
+    # Load resumed weights before torch.compile; checkpoints use canonical names.
     if resume_ckpt is not None:
         core.load_state_dict(resume_ckpt["core"], strict=True)
         head.load_state_dict(resume_ckpt["head"], strict=True)
-        print(f"[resume] 权重已装载（step={resume_step:,}）✓", flush=True)
+        print(f"[resume] loaded weights at step {resume_step:,}", flush=True)
 
-    # 存 ckpt 统一走 util.ckpt.clean_state_dict：剥掉 torch.compile 的
-    # `_orig_mod.` 包装前缀，否则评测端按裸模型键名读会一个都对不上
-    # （2026-09-14 事故：224 个网格 ckpt 全部退化成随机权重）。
+    # Save canonical state dictionaries so evaluation consumes the same names.
     from util.ckpt import clean_state_dict
-    # ── 速度开关（用户 2026-09-14：单进程性能优先 ✓）──
-    # TF32 只影响 fp32 矩阵乘（amp 关时才有意义）：默认关，配 train.tf32: true 才开 ✓
+    # Performance switches. TF32 is opt-in because BF16 autocast supersedes it.
     if device == "cuda" and bool(t_cfg.get("tf32", False)):
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.allow_tf32 = True
-        print("[speed] TF32 已开（fp32 矩阵乘）", flush=True)
+        print("[speed] TF32 enabled", flush=True)
     if bool(t_cfg.get("compile", False)):
-        # compile_mode：default / reduce-overhead（CUDA Graphs，小模型 launch-bound 时更优）/ max-autotune
+        # reduce-overhead helps launch-bound models; max-autotune trades startup time.
         _cmode = t_cfg.get("compile_mode") or None
         core = torch.compile(core, mode=_cmode) if _cmode else torch.compile(core)
         head = torch.compile(head, mode=_cmode) if _cmode else torch.compile(head)
-        print(f"[speed] torch.compile 已启用（mode={_cmode or 'default'}；首步含编译开销 ✓）",
-              flush=True)
-    # 固定形状训练 → 让 cudnn 自己比一遍挑最快卷积核（官方复现线同口径 ✓）；
-    # 默认关：形状频繁变化的调试场景下它会反复 benchmark 反而变慢 ✗。
+        print(f"[speed] torch.compile enabled with mode={_cmode or 'default'}", flush=True)
+    # cudnn benchmarking helps fixed shapes but slows workloads with changing shapes.
     if device == "cuda" and bool(t_cfg.get("cudnn_benchmark", False)):
         torch.backends.cudnn.benchmark = True
-        print("[speed] cudnn.benchmark 已开（固定形状选最快 kernel）", flush=True)
+        print("[speed] cudnn.benchmark enabled", flush=True)
 
-    # 可选 profiler（train.profile_steps=N）：只测前 N 步，结果写 <out>/profiler.txt ✓
+    # Optionally profile the first N steps and write a summary table.
     _prof_n = int(t_cfg.get("profile_steps") or 0)
     prof = None
     if _prof_n > 0 and device == "cuda":
@@ -447,13 +405,11 @@ def run(config: dict) -> dict:
              + sum(p.numel() for p in head.parameters())) / 1e6
     print(f"[model] full={n_par:.2f}M params mode={cfg['pyramid']['mode']}")
 
-    # 数据：统一从 DataPort 取（corpus_dirs / shard_dir / 旧流式三选一在 dataport 里选 ✓，
-    # 流程不碰数据格式细节 ✗；返回 shard_mode 表示 batch 是不是分片窗口格式）。
+    # DataPort owns corpus, shard, and legacy streaming input selection.
     from dataport.dataport import build_train_loaders
 
     accum = max(1, int(t_cfg.get("grad_accum_steps", 1)))
-    # 续跑：数据流从 `step × accum` 个 micro batch 处精确接上（sampler 的 RNG 逐位
-    # 重放 ✓，不重读已经训过的数据；step = 已完成的**优化步**数 ✓）。
+    # On resume, replay sampler randomness and skip consumed micro batches.
     skip_micro = resume_step * accum
 
     sampling = t_cfg.get("sampling") or {}
@@ -463,7 +419,7 @@ def run(config: dict) -> dict:
         sampler_factory = lambda ds, bs, seed, ga: make_rotation_sampler(
             ds, bs, seed, ga, cfg, skip_micro=skip_micro)
     elif _policy == "band_mix":
-        # 官方 A.2 口径：按频段份额抽 batch（小语料 / 合成片不被大语料淹没 ✓）
+        # Sample by frequency-band share to prevent large corpora dominating small ones.
         from pipeline.policies.band_mix import make_band_mix_sampler
         sampler_factory = lambda ds, bs, seed, ga: make_band_mix_sampler(
             ds, bs, seed, ga, cfg, skip_micro=skip_micro)
@@ -472,20 +428,19 @@ def run(config: dict) -> dict:
     tr_loader, va_loader, shard_mode = build_train_loaders(
         cfg, sampler_factory=sampler_factory, skip_micro=skip_micro)
     if skip_micro:
-        print(f"[resume] 数据流跳过 {skip_micro:,} 个 micro batch "
-              f"(= {resume_step:,} 步 × {accum} 累积) → 无缝接上 ✓", flush=True)
+        print(f"[resume] skipped {skip_micro:,} micro batches "
+              f"({resume_step:,} steps x {accum} accumulation)", flush=True)
 
-    # 一个 epoch = 跑完一轮训练集（用 loader 的真实长度 ✓）：配置不写 steps_per_epoch 就用它；
-    # 只写 epochs 时由它反推 total_steps —— 手算 total_steps 很容易跟数据错位 ✗
+    # Derive total steps from the actual loader unless the config sets them explicitly.
     spe = int(t_cfg.get("steps_per_epoch") or 0) or max(
         1, math.ceil(len(tr_loader) / accum))
     if not t_cfg.get("total_steps"):
         t_cfg["total_steps"] = spe * max(1, int(t_cfg.get("epochs") or 1))
     t_cfg["steps_per_epoch"] = spe
-    print(f"[plan] 1 epoch={spe:,} 步 → total_steps={t_cfg['total_steps']:,}",
+    print(f"[plan] one epoch={spe:,} steps; total_steps={t_cfg['total_steps']:,}",
           f" epochs={t_cfg['total_steps'] / spe:.2f}", flush=True)
 
-    # decay/no-decay 参数分组（Moirai 式：LN/bias 不 weight decay）
+    # Keep norm and bias parameters outside weight decay when grouping is enabled.
     def _no_decay(name: str) -> bool:
         return name.endswith(".bias") or "norm" in name or "ln" in name
 
@@ -500,11 +455,10 @@ def run(config: dict) -> dict:
     else:
         params = list(core.parameters()) + list(head.parameters())
 
-    # 梯度裁剪必须用真实参数列表：wd_group=true 时 params 是 param-group 字典，
-    # 直接传给 clip_grad_norm_ 会报 'dict' object has no attribute 'grad'。
+    # Gradient clipping needs the flat parameter list even when optimizer groups exist.
     clip_params = list(core.parameters()) + list(head.parameters())
 
-    # fused AdamW：CUDA 上把多张量更新并成少数 kernel（单步更快 ✓）；不支持就回退 ✗
+    # Use fused AdamW when supported and fall back transparently otherwise.
     _fused = device == "cuda" and bool(t_cfg.get("fused_optim", True))
     try:
         opt = torch.optim.AdamW(params, lr=t_cfg["lr"],
@@ -516,33 +470,27 @@ def run(config: dict) -> dict:
                                 weight_decay=t_cfg["weight_decay"])
     print(f"[speed] fused_optim={_fused}", flush=True)
 
-    # 续跑：优化器动量（Adam 的一阶/二阶矩）必须一并恢复 —— 少了它，退火段会走出
-    # 另一条轨迹（2026-09-17 的教训：3src_full 只存了权重，而剩下的正好是决定
-    # 最终分的退火段，热启动等于换掉最要紧的那一段 ✗）。
+    # Resume Adam moments with the schedule state; omitting them changes the decay path.
     if resume_ckpt is not None and resume_ckpt.get("optim"):
         opt.load_state_dict(resume_ckpt["optim"])
-        print("[resume] 优化器动量已恢复 ✓", flush=True)
+        print("[resume] optimizer moments restored", flush=True)
     elif resume_ckpt is not None:
-        print("[resume] 旧格式 ckpt 没有优化器动量 → 只能热启动（Adam 要几百步重新"
-              "估计矩；退火段会偏离原轨迹 ✗）", flush=True)
+        print("[resume] checkpoint has no optimizer moments; warm-starting Adam", flush=True)
 
-    # ── 官方 rollout 模式（2026-09-15 用户定：除模型外全部对齐 TinyCast）──
-    # 数据侧只给原始窗口 [ctx + K×p]；归一化 / 建金字塔 / 回喂都在 _rollout_loss 里做 ✓
-    # 判据只看**数据格式**（raw 窗口 = 3 字段 win/winm/sf），不看块数 ✓ ——
-    # 2026-09-15 修：旧写法多带一条 `ar_chunks > 1`，于是 `ar_chunks: 1`（= 单块、
-    # 不做 AR rollout 的对照格）会掉进 11 字段的非 rollout 分支 → ValueError（实测 ✗）。
-    # 块数由 `_rollout_loss` 的 K = max(1, ar_chunks) 决定，K=1 就是单块损失 ✓。
+    # TinyCast-compatible rollout accepts raw [context + K x horizon] windows.
+    # Normalization, pyramid construction, and feedback remain in _rollout_loss.
+    # Dispatch by data layout; K=1 is a single-block rollout.
     rollout_on = (shard_mode
                   and str((cfg.get("data") or {}).get("window_mode", "levels")) == "raw")
     eps_max = float(t_cfg.get("scheduled_sampling_max", 0.5))
     _aug = dict(t_cfg.get("augment") or {})
     _aug_on = bool(_aug.pop("enabled", False)) and rollout_on
     _aug_rng = random.Random(int(cfg["data"].get("seed", 42)) + 7)
-    # 续跑：把增强 / mixup / dropout 的随机源一并还原 ✓
+    # Restore augmentation randomness with the other resume state.
     _restore_rng(resume_ckpt, device, _rndmod, _npmod, _aug_rng)
     if rollout_on:
-        print(f"[rollout] AR {int(t_cfg['ar_chunks'])} 块 × {int(head.horizon)} 步 / "
-              f"ε_max={eps_max} / 增强={_aug_on}（官方口径 ✓）", flush=True)
+        print(f"[rollout] AR chunks={int(t_cfg['ar_chunks'])}; "
+              f"horizon={int(head.horizon)}; epsilon_max={eps_max}; augmentation={_aug_on}", flush=True)
 
     sched = t_cfg.get("lr_schedule", "cosine")   # cosine | wsd | cosine_restarts
 
@@ -550,7 +498,7 @@ def run(config: dict) -> dict:
         if step < t_cfg["warmup_steps"]:
             return t_cfg["lr"] * step / t_cfg["warmup_steps"]
         if sched == "wsd":
-            # Toto 式 WSD：stable plateau 到 70% 总步，然后 1-sqrt decay 到 min_lr
+            # Warmup-stable-decay plateaus, then decays as one minus the square root.
             stable_end = int(t_cfg["total_steps"] * t_cfg.get("wsd_stable_frac", 0.7))
             if step < stable_end:
                 return t_cfg["lr"]
@@ -559,7 +507,7 @@ def run(config: dict) -> dict:
             return t_cfg.get("min_lr", 1e-5) + (t_cfg["lr"] - t_cfg.get(
                 "min_lr", 1e-5)) * (1 - math.sqrt(min(p, 1.0)))
         if sched == "cosine_restarts":
-            # Moirai 式 cosine with warm restarts（周期 = restart_frac × 总步）
+            # Cosine schedule with periodic warm restarts.
             period = max(1, int(t_cfg["total_steps"] * t_cfg.get(
                 "restart_frac", 0.25)))
             p = ((step - t_cfg["warmup_steps"]) % period) / period
@@ -568,7 +516,7 @@ def run(config: dict) -> dict:
             1, t_cfg["total_steps"] - t_cfg["warmup_steps"])
         return t_cfg["lr"] * 0.5 * (1 + math.cos(math.pi * min(p, 1.0)))
 
-    # 分位网格：QuantileHead 用 head.q；StudentTHead 用其 q_grid
+    # QuantileHead exposes q; StudentTHead exposes its own quantile grid.
     q_t = getattr(head, "q", None)
     if q_t is None:
         q_t = head.q_grid
@@ -582,12 +530,12 @@ def run(config: dict) -> dict:
     t_start = time.time()
     core.train()
     if resume_step:
-        print(f"[resume] 从 step {resume_step:,} 继续 → 还剩 "
-              f"{int(t_cfg['total_steps']) - resume_step:,} 步（共 "
-              f"{int(t_cfg['total_steps']):,}）", flush=True)
+        print(f"[resume] continuing from step {resume_step:,}; "
+              f"{int(t_cfg['total_steps']) - resume_step:,} of "
+              f"{int(t_cfg['total_steps']):,} steps remain", flush=True)
 
-    # 单步拆解（用户 2026-09-14：先看清时间花在哪再谈优化 ✓）：
-    #   data=等 batch、fwd_bwd=前向+反向、opt=优化器/裁剪/存盘；第 1 步不计入（含预热/编译 ✗）
+    # Timing buckets separate data waiting, forward/backward, and optimizer work.
+    # The first step is excluded because it includes warmup and compile overhead.
     acc = {"data": 0.0, "fwd_bwd": 0.0, "opt": 0.0}
     t_prev = time.perf_counter()
     group_micro = 0
@@ -596,10 +544,7 @@ def run(config: dict) -> dict:
     loss_sum = torch.zeros((), device=device)
 
     spe = int(t_cfg.get("steps_per_epoch", 0) or 0)
-    # ckpt 节奏（用户 2026-09-14：一次训完、中途按固定间隔存，
-    #   不要为了看"2 轮 / 4 轮"的曲线反复从头训 ✗）：
-    #   save_every_epochs: 2  → 每 2 个 epoch 存一个（2,4,6,…）
-    #   save_epochs: 2,5,9    → 明确指定（两者可叠加）
+    # Persist periodic checkpoints during a single uninterrupted run.
     _se = t_cfg.get("save_epochs")
     save_epoch_set = ({int(x) for x in _se} if isinstance(_se, (list, tuple))
                       else {int(x) for x in str(_se or "").split(",") if x.strip()})
@@ -608,10 +553,10 @@ def run(config: dict) -> dict:
         _n_ep = int(math.ceil(t_cfg["total_steps"] / max(1, spe)))
         save_epoch_set |= set(range(_every, _n_ep + 1, _every))
     if save_epoch_set:
-        print(f"[ckpt] 将保存 epoch {sorted(save_epoch_set)}（1 epoch={spe:,} 步）", flush=True)
+        print(f"[ckpt] saving epochs {sorted(save_epoch_set)}; one epoch={spe:,} steps", flush=True)
 
     def _rng_snapshot() -> dict:
-        """打包会让训练轨迹分叉的全部随机源 ✓。"""
+        """Capture every RNG state that can change the training trajectory."""
         snap = {"torch": torch.get_rng_state(),
                 "python": _rndmod.getstate(),
                 "numpy": _npmod.random.get_state(),
@@ -621,7 +566,7 @@ def run(config: dict) -> dict:
         return snap
 
     def _ckpt_payload(_step: int, **extra) -> dict:
-        """统一 checkpoint 载荷：能停能续 = 权重 / 优化器 / 随机源 / 进度 四件套齐全 ✓。"""
+        """Build a complete checkpoint with model, optimizer, RNG, and progress."""
         payload = dict(step=int(_step),
                        core=clean_state_dict(core),
                        head=clean_state_dict(head),
@@ -641,11 +586,11 @@ def run(config: dict) -> dict:
                 break
             if shard_mode:
                 if rollout_on:
-                    # 官方 rollout 口径：batch = 原始窗口 [ctx + K×p] + 掩码 + 季节 scale ✓
+                    # Raw rollout batches contain context, mask, and seasonal scale.
                     win, winm, sf = (x.to(device, non_blocking=True)
                                      for x in batch[:3])
                 elif len(batch) >= 12:
-                    # 12 字段 = 附带季节复制参照；11 字段 = 旧格式（向后兼容）
+                    # Current shard batches add a seasonal copy target; older batches have 11 fields.
                     (xn, xm, xc, lids, xt, xta, tgt, loc, scale,
                      anchor, tgt_mask, copy_h) = batch[:12]
                 else:
@@ -656,7 +601,7 @@ def run(config: dict) -> dict:
                 (xn, xm, xc, lids, xt, xta, tgt, loc, scale,
                  anchor) = batch
                 tgt_mask = None
-            t_now = time.perf_counter()          # 拿到 batch 的时刻（与上一步相隔 = 等数据 ✓）
+            t_now = time.perf_counter()  # Wait until the batch arrives.
             if group_micro == 0:
                 cur_lr = lr_at(step)
                 for g in opt.param_groups:
@@ -667,15 +612,12 @@ def run(config: dict) -> dict:
                 xn, xm, xc, lids, xt = (x.to(device, non_blocking=True)
                                         for x in (xn, xm, xc, lids, xt))
                 xta = xta.to(device)
-                # pin_memory + non_blocking：H2D 拷贝与 GPU 计算重叠
+                # Overlap host-to-device copies with GPU computation.
                 xta = xta.to(device, non_blocking=True)
                 tgt_d = tgt.to(device, non_blocking=True)
             if rollout_on:
-                # 官方口径：ε 在前半程线性爬到 eps_max（官方 train.py 同式 ✓）
-                # `scheduled_sampling_ramp_steps` 可选：把爬升区间钉到**参照线的真实区间**
-                # （官方 36,621 步 → 18,310）。为什么需要：短探针（1000 步）若按自己的 total_steps
-                # 算半程，第 150 步 ε=0.15，而参照线同一步只有 0.004 —— rollout 难度不同，
-                # 同步数损失不可比 ✗（2026-09-15 发现的口径混淆）。缺省 0 = 老行为 ✓。
+                # Scheduled sampling rises linearly to epsilon_max during the first half.
+                # An optional explicit ramp keeps probes comparable to the reference run.
                 _ramp = float(t_cfg.get("scheduled_sampling_ramp_steps") or 0.0)
                 if _ramp <= 0.0:
                     _ramp = 0.5 * t_cfg["total_steps"]
@@ -685,31 +627,31 @@ def run(config: dict) -> dict:
                 loss = _rollout_loss(core, head, win, winm, sf, q_t, cfg,
                                      amp_scope, eps)
             elif cfg["model"].get("multi_horizon", False) or head.horizon > 0:
-                # Chronos-2 式联合多步：context → 一次性输出整段 H 步分位数
-                # （不用 future-token——v7 证伪；监督密度 = H 步/样本，非 1 点）
+                # Predict the full horizon jointly, as Chronos-2 does.
+                # Every horizon point contributes supervision.
                 with amp_scope():
                     h_ctx = core(xn, xm, xc, level_ids=lids,
                                  ts_norm=xt, t_abs=xta)
-                # 掩码加权池化用：把 token 级有效掩码展平 [B, N]（仅 head_pool=masked 时用）
+                # Flatten the token mask only for masked-pool heads.
                 _tok_w = xm.reshape(xm.shape[0], -1).to(device) \
                     if getattr(head, "head_pool", "mean") == "masked" else None
                 H = head.horizon if head.horizon > 0 else tgt_d.shape[-1]
-                # last_obs = 归一化后的最后观测（残差结构锚点）
-                # xn [B, L, W] 粗级在前展平 → 最后 token = 最细级末观测
+                # The final normalized observation anchors residual forecasts.
+                # Levels are coarse-to-fine, so the final token is the finest-level observation.
                 lo = xn.reshape(xn.shape[0], -1)[:, -1].unsqueeze(-1)  # [B, 1]
                 T_avail = tgt_d.shape[-1]
                 use_anchor = bool(cfg["model"].get("anchor_snaive", False))
                 if use_anchor:
-                    # v28a：SNaive 季节锚（per-step [B,H]）
+                    # Seasonal-naive anchor, one value per forecast step.
                     with amp_scope():
                         qh = head.forward_horizon(
                             h_ctx, last_obs=None,
                             anchor=anchor[:, :H].to(device), token_weight=_tok_w)
                 elif hasattr(head, "combined_loss"):
-                    # StudentT 分布头（Toto 式）：NLL + Barron robust
+                    # Student-t distribution head with a robust loss term.
                     with amp_scope():
                         df, mu, sc = head.forward_horizon(h_ctx, last_obs=lo)
-                    qh = head.quantiles(df, mu, sc)        # [B,H,9]（delta_reg 用）
+                    qh = head.quantiles(df, mu, sc)  # Used by the delta regularizer.
                     loss = head.combined_loss(
                         tgt_d, df[:, :T_avail], mu[:, :T_avail],
                         sc[:, :T_avail]).mean()
@@ -718,7 +660,7 @@ def run(config: dict) -> dict:
                         qh = head.forward_horizon(h_ctx, last_obs=lo,
                                                   token_weight=_tok_w)
                 if not use_anchor and not hasattr(head, "combined_loss"):
-                    # 目标段 [B, H]（dataset multi_horizon 分支已给连续段）
+                    # The dataset supplies a contiguous multi-horizon target segment.
                     qf = qh[:, :T_avail].reshape(-1, q_t.shape[0])  # [B*H, Q]
                     tf = tgt_d.reshape(-1)                          # [B*H]
                     mask_f = (tgt_mask[:, :T_avail].reshape(-1).to(device)
@@ -727,7 +669,7 @@ def run(config: dict) -> dict:
                     loss = _add_committing(loss, qh, tgt_d, copy_h, tgt_mask,
                                            q_t, T_avail, cfg, device, head)
                 elif use_anchor:
-                    # anchor 模式：目标仍是绝对段（预测=anchor+delta 与 tgt 比）
+                    # Compare the anchored prediction directly with the absolute target.
                     qf = qh[:, :T_avail].reshape(-1, q_t.shape[0])
                     tf = tgt_d.reshape(-1)
                     mask_f = (tgt_mask[:, :T_avail].reshape(-1).to(device)
@@ -735,11 +677,11 @@ def run(config: dict) -> dict:
                     loss = pinball_loss_mask(qf, tf, q_t, mask_f)
                     loss = _add_committing(loss, qh, tgt_d, copy_h, tgt_mask,
                                            q_t, T_avail, cfg, device, head)
-                # delta 收缩正则：让模型默认贴近锚、仅强证据时偏离。
-                # 锚 = SNaive 季节锚（use_anchor）或平线 last_obs（TiRex 式）
+                # Regularize deviations from the anchor unless the data provide strong evidence.
+                # The anchor is either seasonal naive or the last normalized observation.
                 dr = cfg["model"].get("delta_reg", 0.0)
                 if dr > 0 and loss is not None:
-                    # 中位（qh 中间列）相对锚的偏差
+                    # Measure median deviation from the selected anchor.
                     med = qh[:, :T_avail, q_t.shape[0] // 2]
                     if use_anchor:
                         ref = anchor[:, :T_avail].to(device)
@@ -751,7 +693,7 @@ def run(config: dict) -> dict:
                     else:
                         m_dev = tgt_mask[:, :T_avail].to(device).to(dev_all.dtype)
                         denom = m_dev.sum()
-                        # 判定不落 host（同 pinball_loss_mask）→ 少一个每步 GPU 同步 ✓
+                        # Keep the predicate on GPU to avoid a per-step host synchronization.
                         dev = torch.where(
                             denom > 0,
                             (dev_all * m_dev).sum() / denom.clamp_min(
@@ -764,7 +706,7 @@ def run(config: dict) -> dict:
                              ts_norm=xt, t_abs=xta)
                 pred = head(h[:, -1])
                 loss = pinball_loss(pred, tgt_d, q_t)
-                # DINO 式跨尺度对齐损失（可选）：相邻级表征 InfoNCE 对齐
+                # Optional cross-scale InfoNCE alignment between adjacent levels.
                 align_lambda = cfg["model"].get("align_lambda", 0.0)
                 z_levels = getattr(core, "z_levels", None)
                 if align_lambda > 0 and z_levels is not None:
@@ -773,15 +715,15 @@ def run(config: dict) -> dict:
                     align_loss = torch.tensor(0.0, device=device)
                     n_pairs = 0
                     for l in range(L - 1):
-                        # 正对：同样本相邻级；负对：批内其他样本同相邻级
+                        # Positive pairs are adjacent levels of the same sample.
                         pos = (z[:, l] * z[:, l + 1]).sum(-1)          # [B]
-                        # 负对：每个样本 vs 批内所有其他样本的 l+1 级
+                        # Negative pairs use other samples at the adjacent level.
                         sim = z[:, l] @ z[:, l + 1].T                  # [B, B]
                         sim.fill_diagonal_(float("-inf"))
                         logits = torch.cat([pos.unsqueeze(-1), sim], dim=-1)
                         labels = torch.zeros(B, dtype=torch.long, device=device)
                         align_loss = align_loss + torch.nn.functional.cross_entropy(
-                            logits / 0.5, labels)   # 温度 0.5（0.1 太冷导致 align loss 爆炸）
+                            logits / 0.5, labels)   # Temperature 0.5 is stable for this loss.
                         n_pairs += 1
                     loss = loss + align_lambda * (align_loss / max(n_pairs, 1))
             loss_sum += loss.detach()
@@ -797,7 +739,7 @@ def run(config: dict) -> dict:
             opt.zero_grad(set_to_none=True)
             step += 1
             t2 = time.perf_counter()
-            if step > 1:        # 第 1 步含首次填充 / kernel 选择 / compile 开销 → 不计入 ✓
+            if step > 1:  # Exclude first-step fill, kernel selection, and compilation.
                 acc["data"] += group_data
                 acc["fwd_bwd"] += group_fwd
                 acc["opt"] += t2 - t1
@@ -811,16 +753,16 @@ def run(config: dict) -> dict:
                 prof.__exit__(None, None, None)
                 _tbl = prof.key_averages().table(sort_by="cuda_time_total", row_limit=20)
                 (out / "profiler.txt").write_text(_tbl)
-                print(f"[speed] profiler 前 {_prof_n} 步（已写 {out}/profiler.txt）", flush=True)
+                print(f"[speed] profiled first {_prof_n} steps; wrote {out}/profiler.txt", flush=True)
                 prof = None
 
-            # epoch 检查点必须当场存：训练结束后再循环存会把最终权重写成所有 epoch
-            # （2026-09-10 发现：epoch1..4.pt 权重相同，mini97 逐 epoch 结果完全一致）
+            # Save epoch checkpoints immediately; recreating them later would overwrite
+            # each earlier epoch with the final weights.
             if spe > 0 and step % spe == 0 and (step // spe) in save_epoch_set:
                 _ep = step // spe
                 torch.save(_ckpt_payload(step, epoch=_ep),
                            out / f"epoch{_ep}.pt")
-                print(f"[ckpt] epoch{_ep} @ step {step} 已存", flush=True)
+                print(f"[ckpt] saved epoch {_ep} at step {step}", flush=True)
 
             _chunk_steps = int(
                 t_cfg.get("ckpt_every_steps")
@@ -828,13 +770,12 @@ def run(config: dict) -> dict:
             if _chunk_steps > 0 and (step % _chunk_steps == 0
                                      or step == t_cfg["total_steps"]):
                 _chunk = int(math.ceil(step / _chunk_steps))
-                # chunk 与 last 存同一份载荷：续跑只读 last.pt；chunk 序列留给曲线与
-                # 收尾的权重平均 ✓（两份都是完整可续的，不是剪辑版）
+                # Chunk and last checkpoints share the same resumable payload. last.pt is
+                # used for resume; chunk files support curves and checkpoint averaging.
                 _pay = _ckpt_payload(step, chunk=_chunk)
                 torch.save(_pay, out / f"chunk{_chunk:02d}.pt")
                 torch.save(_pay, out / "last.pt")
-                print(f"[ckpt] chunk{_chunk:02d} @ step {step} 已存",
-                      flush=True)
+                print(f"[ckpt] saved chunk {_chunk:02d} at step {step}", flush=True)
 
             if step % t_cfg["log_every"] == 0:
                 el = time.time() - t_start
@@ -844,7 +785,7 @@ def run(config: dict) -> dict:
                       f"elapsed={el/60:.1f}min | data {100*acc['data']/tot:.0f}% "
                       f"fwd+bwd {100*acc['fwd_bwd']/tot:.0f}% opt {100*acc['opt']/tot:.0f}% "
                       f"| {1000*tot/n_meas:.0f} ms/step "
-                      f"{t_cfg['batch_size']*accum*n_meas/tot:.1f} 样本/s")
+                      f"{t_cfg['batch_size'] * accum * n_meas / tot:.1f} samples/s")
                 if writer is not None:
                     writer.add_scalar("train/loss_pinball", loss_avg.item(), step)
                     writer.add_scalar("hyper/lr", cur_lr, step)
@@ -864,20 +805,19 @@ def run(config: dict) -> dict:
                                      head=clean_state_dict(head))
                     torch.save(ckpt_best, out / "best.pt")
 
-    # 官方收尾口径：最后 N 个周期 ckpt 均匀平均（`train.ckpt_avg_last`，0=关 ✓）
+    # Uniformly average the final N chunk checkpoints when enabled.
     _avg_n = int(t_cfg.get("ckpt_avg_last", 0) or 0)
     avg_path = _average_checkpoints(out, _avg_n, cfg) if _avg_n > 0 else None
     if avg_path is not None:
-        print(f"[ckpt] 最后 {_avg_n} 个周期 ckpt 均匀平均 → {avg_path.name}", flush=True)
+        print(f"[ckpt] averaged the final {_avg_n} chunk checkpoints into {avg_path.name}", flush=True)
     wall = time.time() - t_start
     torch.save(_ckpt_payload(step), out / "last.pt")
-    # 每 epoch 检查点（可配 save_epochs="1,2,4"；基于 steps_per_epoch 换算）
-    # 注意：epoch 检查点已在训练循环内按步保存（见上），此处不再补存。
+    # Epoch checkpoints are already written at their exact steps inside the loop.
     summary = dict(steps=step, wall_minutes=wall / 60,
                    best_val=(best_val if math.isfinite(best_val) else None),
                    params_M=n_par, device=device)
     summary.update(checkpoint_averaged=(avg_path.name if avg_path else None))
-    # 吞吐与耗时拆解也回传（网格里就能直接按"哪个配方跑得动"筛 ✓）
+    # Return throughput and timing buckets so batch runs remain easy to triage.
     _tot = max(acc["data"] + acc["fwd_bwd"] + acc["opt"], 1e-9)
     _n = max(step - 1, 1)
     summary.update(ms_per_step=round(1000 * _tot / _n, 2),

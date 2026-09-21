@@ -1,15 +1,13 @@
-# 官方实现复本（逐字复制，零修改）。
+# Verbatim copy of the upstream implementation.
 #
-# 来源仓库: raws-labs/tinycast (Apache-2.0), 论文 arXiv:2608.15767
-# 官方路径: tinycast/encoding.py
-# 复制日期: 2026-09-11
+# Source: raws-labs/tinycast (Apache-2.0), arXiv:2608.15767
+# Upstream path: tinycast/encoding.py
 #
-# 为什么逐字复制而不是重写：重写必然引入偏离（命名/边界/dtype 提升/clamp 位置），
-# 而这些都会静默改变数值。算法本体保持官方原样，我们的新代码只在 module/periodic/encoder.py
-# （集成层）。任何对本文件内容的改动都算偏离官方，必须在
-# 在发布说明中标注并独立做消融验证。
+# Keep this file byte-for-byte aligned with the upstream algorithm. FracCast-specific
+# integration lives in module/periodic/encoder.py. Any change here should be treated as
+# a deliberate divergence and documented in the release notes.
 #
-# 原文件头部 docstring 见下（保留不动）。
+# The original module docstring follows unchanged.
 
 """Shared structural positional-encoding helpers (phase + bounded recency).
 
@@ -34,23 +32,23 @@ def _phase_encoding(
     """Compute sin/cos phase encoding for each position under each period.
 
     For each detected period ``p_k``, emit Fourier-series channels up to
-    ``n_harmonics``: at harmonic m, the channels are sin(2π·m·t/p_k) and
-    cos(2π·m·t/p_k). The fundamental (m=1) is the base behavior; m=2,3,...
+    ``n_harmonics``: at harmonic m, the channels are sin(2pi*m*t/p_k) and
+    cos(2pi*m*t/p_k). The fundamental (m=1) is the base behavior; m=2,3,...
     let the model represent non-sinusoidal periodic shapes (square-wave
     traffic, sawtooth load) that the fundamental alone cannot.
 
     Output channel ordering, per (period, harmonic):
-        [sin(1·φ_1), cos(1·φ_1), ..., sin(H·φ_1), cos(H·φ_1),
-         sin(1·φ_2), cos(1·φ_2), ..., sin(H·φ_K), cos(H·φ_K)]
+        [sin(1*phi_1), cos(1*phi_1), ..., sin(H*phi_1), cos(H*phi_1),
+         sin(1*phi_2), cos(1*phi_2), ..., sin(H*phi_K), cos(H*phi_K)]
 
     Args:
         positions:   (B, T) int tensor of absolute positions.
         periods:     (B, K) int tensor of per-sample detected periods. Zero
-                     means "rejected by significance test" → all harmonics
+                     means "rejected by significance test" ; all harmonics
                      of that period come back zeroed.
         n_harmonics: number of Fourier harmonics per period (default 1).
     Returns:
-        (B, T, 2·K·n_harmonics) fp32 tensor.
+        (B, T, 2*K*n_harmonics) fp32 tensor.
     """
     B, T = positions.shape
     K = periods.shape[1]
@@ -61,7 +59,7 @@ def _phase_encoding(
     p_safe = periods.clamp(min=1).view(B, 1, K).float()
     pos = positions.view(B, T, 1).float()
     phase_base = 2.0 * math.pi * pos / p_safe                     # (B,T,K)
-    # Build (B,T,K,H,2): for each (period k, harmonic m), [sin(m·φ_k), cos(m·φ_k)]
+    # Build (B,T,K,H,2): for each (period k, harmonic m), [sin(m*phi_k), cos(m*phi_k)]
     multipliers = torch.arange(1, H + 1, device=positions.device, dtype=phase_base.dtype)
     phase_m = phase_base.unsqueeze(-1) * multipliers              # (B,T,K,H)
     sin_m = torch.sin(phase_m) * valid.unsqueeze(-1)              # (B,T,K,H)
@@ -79,17 +77,17 @@ def _recency_encoding(
 ) -> torch.Tensor:
     """Bounded recency/trend channels for the shared positional encoding.
 
-    "Now" is anchored at position ``L-1`` (end of context). ``Δ = (t - (L-1)) / L``
+    "Now" is anchored at position ``L-1`` (end of context). ``delta = (t - (L-1)) / L``
     is signed: negative for past, zero at "now", positive for future. All
     channels are bounded so they're safe to evaluate at arbitrary future
     horizons (the parameterized-query path goes well beyond training H).
 
     Channels (5):
-        rec_lin:  Δ                            (signed linear distance from now)
-        rec_log:  sign(Δ) · log1p(|Δ|)/log(2)  (signed log-compressed distance)
-        rec_e05:  exp(-0.5 · |Δ|)              (long-memory decay)
-        rec_e2:   exp(-2.0 · |Δ|)              (medium-memory decay)
-        rec_e8:   exp(-8.0 · |Δ|)              (short-memory / locality kernel)
+        rec_lin:  delta                            (signed linear distance from now)
+        rec_log:  sign(delta) * log1p(|delta|)/log(2)  (signed log-compressed distance)
+        rec_e05:  exp(-0.5 * |delta|)              (long-memory decay)
+        rec_e2:   exp(-2.0 * |delta|)              (medium-memory decay)
+        rec_e8:   exp(-8.0 * |delta|)              (short-memory / locality kernel)
     """
     B, T = positions.shape
     delta = (positions.float() - float(L - 1)) / float(L)         # (B, T)
@@ -108,7 +106,7 @@ def _positional_encoding(
 ) -> torch.Tensor:
     """Full shared positional encoding (phase + bounded recency basis).
 
-    Returns (B, T, 2·K·n_harmonics + 5).
+    Returns (B, T, 2*K*n_harmonics + 5).
     """
     return torch.cat(
         [

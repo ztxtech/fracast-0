@@ -1,24 +1,24 @@
-"""把并行转换的多个 part 合并成单一全局索引（并做交叉核对）。
+"""Merge independently converted corpus parts into one global index.
 
-## 背景
-转换是 32 路并行（`--part k --parts 32`），每个 part 写在 `corpus/p<k>/` 下，
-各自有 `shard*.{values.f32,offsets,lengths,freq_id,ds_id}.npy` 与 `manifest.json`。
-模型侧要的是**一个全局视图**：任意全局行号 → (分片, 片内行号)。
+Each parallel part writes shard arrays and a manifest. The training path needs
+one global mapping from row number to shard and in-shard row. This merger also
+cross-checks every manifest against arrays read from disk.
 
-## 产出（都写在 corpus 根下）
-- `index.npz`：`lengths` / `freq_id` / `ds_id` 全局拼接 + 长度分桶 `le*`（只建索引，不动数据）
-- `shard_map.json`：全局分片序号 → 相对路径（含该分片的行数、点数）
-- `datasets.txt` / `freqs.txt`：全局 id ↔ 名称（按 part 重映射，保证一致）
-- `manifest.json`：n_shards / n_rows / n_points + 各 part 的声明值（用于交叉核对）
+Outputs, written at the corpus root:
+- index.npz: global lengths, frequency/dataset IDs, and length buckets;
+- shard_map.json: global shard path with row and point totals;
+- datasets.txt and freqs.txt: global identifier tables;
+- manifest.json: totals plus the per-part claims used for cross-checking.
 
-## 交叉核对（合并时顺手做）
-1. **各 part manifest 声明之和** vs **实际重算**（读 lengths/offsets）→ 必须一致
-2. 每个分片 `offsets[-1] == lengths.sum()` 且 `offsets[-1]*4 == 数据区字节`
-3. 输出差异清单（任何不一致都要报，而不是静默通过）
+Merge fails loudly when manifests disagree with recomputed lengths, offsets,
+or payload bytes.
 
-## 用法
-    env -u PYTHONPATH .venv/bin/python script/corpus/merge_corpus_parts.py --corpus data/corpus_fast/chronos
+Usage:
+    env -u PYTHONPATH .venv/bin/python script/corpus/merge_corpus_parts.py \
+        --corpus data/corpus_fast/chronos
 """
+
+
 from __future__ import annotations
 
 import argparse
@@ -33,7 +33,7 @@ _PART_NAME_CACHE: dict = {}
 
 
 def _part_names(pdir: str, fname: str):
-    """读某个 part 的 datasets.txt/freqs.txt（带缓存）。"""
+    """Read and cache the dataset or frequency names for one part."""
     key = (pdir, fname)
     if key in _PART_NAME_CACHE:
         return _PART_NAME_CACHE[key]
@@ -60,11 +60,11 @@ def main():
 
     parts = sorted(os.path.dirname(p) for p in glob.glob(os.path.join(a.corpus, "p*", "")))
     vals = sorted(glob.glob(os.path.join(a.corpus, a.pattern)))
-    print(f"  part 目录 {len([p for p in parts if os.path.isdir(p)])} 个；values 分片 {len(vals)} 个")
+    print(f"  part directories: {len([p for p in parts if os.path.isdir(p)])}; value shards: {len(vals)}")
     if not vals:
-        print("  ✗ 没有可合并的分片"); return
+        print("  FAIL: no mergeable value shards"); return
 
-    # 数据集名/频率名：各 part 可能有自己的编号，统一重映射为全局编号
+    # Remap part-local dataset and frequency identifiers to global identifiers.
     ds_all, fr_all = [], []
     for p in sorted({os.path.dirname(v) for v in vals}):
         for fn, acc in (("datasets.txt", ds_all), ("freqs.txt", fr_all)):
@@ -75,7 +75,7 @@ def main():
                         acc.append(line)
     ds_id = {n: i for i, n in enumerate(ds_all)}
     fr_id = {n: i for i, n in enumerate(fr_all)}
-    print(f"  数据集 {len(ds_all)} 个 / 频率 {len(fr_all)} 个（全局重映射）")
+    print(f"  datasets: {len(ds_all)} / frequencies: {len(fr_all)} after remapping")
 
     shard_map, Ls, Fs, Ds = [], [], [], []
     _seen_manifests = set()
@@ -88,26 +88,26 @@ def main():
             L = np.load(base + ".lengths.npy")
             O = np.load(base + ".offsets.npy")
         except Exception as e:
-            problems.append((os.path.relpath(base, a.corpus), f"缺 lengths/offsets: {type(e).__name__}"))
+            problems.append((os.path.relpath(base, a.corpus), f"missing arrays: {type(e).__name__}"))
             continue
         rows = len(L)
         pts = int(L.sum())
         calc_rows += rows
         calc_pts += pts
         if len(O) - 1 != rows:
-            problems.append((os.path.relpath(base, a.corpus), f"行数不符 offsets={len(O)-1} lengths={rows}"))
+            problems.append((os.path.relpath(base, a.corpus), f"row mismatch offsets={len(O)-1} lengths={rows}"))
         elif int(O[-1]) != pts:
-            problems.append((os.path.relpath(base, a.corpus), f"末偏移 {int(O[-1])} != 长度和 {pts}"))
+            problems.append((os.path.relpath(base, a.corpus), f"final offset {int(O[-1])} != length sum {pts}"))
         elif int(O[-1]) * 4 != npy_data_bytes(vf):
-            problems.append((os.path.relpath(base, a.corpus), "末偏移*4 != 数据区字节"))
-        # 频率/数据集 id 重映射（分片内是按 part 的局部 id 存的）
+            problems.append((os.path.relpath(base, a.corpus), "final offset bytes != payload bytes"))
+        # Shard identifiers are part-local and require global remapping.
         fj = base + ".freq_id.npy"
         dj = base + ".ds_id.npy"
         lf = np.load(fj) if os.path.exists(fj) else np.zeros(rows, np.int16)
         ld = np.load(dj) if os.path.exists(dj) else np.zeros(rows, np.int16)
-        # ★ 全局重映射（2026-09-13 修）：分片里的 id 是 **该 part 的局部编号**，
-        #   直接用根 datasets.txt/freqs.txt 索引会映射到错误的数据集。
-        #   这里按「本 part 的名字表」→「全局名字表」的重映射表逐值转换。
+        # Convert each part-local identifier through that part name table into the
+        # global name table; indexing a root table directly maps the wrong dataset.
+        # Convert each part-local identifier through that part name table into the global table.
         pdir = os.path.dirname(vf)
         p_ds_names = _part_names(pdir, "datasets.txt")
         p_fr_names = _part_names(pdir, "freqs.txt")
@@ -119,8 +119,8 @@ def main():
             lf = mf[np.clip(lf.astype(np.int64), 0, len(mf) - 1)] if len(mf) else lf
         Ls.append(L); Fs.append(lf); Ds.append(ld)
         shard_map.append({"path": os.path.relpath(vf, a.corpus), "rows": rows, "points": pts})
-        # ★ 每个 part 的 manifest 只读一次（2026-09-13 修）：原来在分片循环里读，
-        #   → 同一 part 的总数被它名下每个分片各累加一次 → 声明值虚高 ~19×
+        # Read each part manifest exactly once so totals are not multiplied by shards.
+        # Read each part manifest exactly once; otherwise per-shard totals are multiplied.
         mp = os.path.join(os.path.dirname(vf), "manifest.json")
         if os.path.exists(mp) and mp not in _seen_manifests:
             _seen_manifests.add(mp)
@@ -129,7 +129,7 @@ def main():
                 declared_rows += int(man.get("n_rows", 0))
                 declared_pts += int(man.get("n_points", 0))
             except Exception as e:
-                problems.append((os.path.relpath(mp, a.corpus), f"manifest 读取失败 {type(e).__name__}"))
+                problems.append((os.path.relpath(mp, a.corpus), f"manifest read failed: {type(e).__name__}"))
 
     Lg = np.concatenate(Ls) if Ls else np.zeros(0, np.int32)
     Fg = np.concatenate(Fs) if Fs else np.zeros(0, np.int16)
@@ -141,24 +141,24 @@ def main():
                "n_datasets": len(ds_all), "shards": shard_map,
                "cross_check": {"declared_rows": declared_rows, "calc_rows": calc_rows,
                                "declared_points": declared_pts, "calc_points": calc_pts},
-               "notes": "values=float32 连续；offsets 给 O(1) 取行；无长度/上下文截断"},
+               "notes": "values are contiguous float32; offsets provide O(1) row access"},
               open(os.path.join(a.corpus, "manifest.json"), "w"), indent=1)
     with open(os.path.join(a.corpus, "datasets.txt"), "w") as fh:
         fh.write("\n".join(ds_all) + "\n")
     with open(os.path.join(a.corpus, "freqs.txt"), "w") as fh:
         fh.write("\n".join(fr_all) + "\n")
 
-    print(f"  ✓ 合并：{len(shard_map)} 分片 / {Lg.size:,} 序列 / {Lg.sum()/1e9:.3f}B 点 / "
-          f"{Lg.sum()*4/1e9:.2f} GB(f32)")
-    print(f"  交叉核对：part manifest 声明 {declared_rows:,} 行 / {declared_pts:,} 点  ↔  "
-          f"实际重算 {calc_rows:,} 行 / {calc_pts:,} 点  "
-          f"{'✓ 一致' if (declared_rows == calc_rows and declared_pts == calc_pts) else '✗ 不一致'}")
+    print(f"  PASS merged {len(shard_map)} shards / {Lg.size:,} sequences / {Lg.sum()/1e9:.3f}B points / "
+          f"{Lg.sum()*4/1e9:.2f} GB (float32)")
+    print(f"  cross-check: manifests claim {declared_rows:,} rows / {declared_pts:,} points; "
+          f"recomputed {calc_rows:,} rows / {calc_pts:,} points; "
+          f"{'PASS' if (declared_rows == calc_rows and declared_pts == calc_pts) else 'FAIL'}")
     if problems:
-        print(f"  ✗ 异常 {len(problems)} 处:")
+        print(f"  FAIL: {len(problems)} problems")
         for nm, why in problems[:10]:
             print(f"      {nm}: {why}")
     else:
-        print("  ✓ 所有分片 offsets/lengths/数据区字节 三者自洽")
+        print("  PASS: offsets, lengths, and payload bytes agree for every shard")
 
 
 if __name__ == "__main__":
