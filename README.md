@@ -361,10 +361,11 @@ python script/benchmark_inference.py --weights w8 --device cuda --batch 32
 The JSON report is written under `output/benchmark/` and includes load time,
 parameter count, resident RSS, p50/p95 latency, and series throughput.
 
-## GIFT-Eval
+## GIFT-Eval Benchmark
 
 The official 97-configuration evaluator is available under
-`script/gift_eval/`. The FP32 release checkpoint produces:
+`script/gift_eval/`. The archived submission and official aggregate are also
+tracked there. The FP32 release checkpoint produces:
 
 | Protocol split | Normalized MASE | Normalized MWQL |
 | --- | ---: | ---: |
@@ -379,6 +380,9 @@ configurations. The submission is labeled `pretrained` with
 `testdata_leakage: "Yes"` because the complete pretraining recipe contains
 dataset families from the GIFT-Eval test corpus. The public leaderboard
 submission is [GIFT-Eval PR #215](https://github.com/SalesforceAIResearch/gift-eval/pull/215).
+It is still open; its two required files are archived under
+`script/gift_eval/results/Fracast-0/`, and the split/overall summary is in
+`script/gift_eval/analysis/protocol_summary.csv`.
 
 Run the evaluator with Python 3.10 or newer:
 
@@ -386,6 +390,38 @@ Run the evaluator with Python 3.10 or newer:
 python -m pip install -r requirements-gift-eval.txt
 python script/gift_eval/evaluate.py --data-root /path/to/gift_eval_raw
 ```
+
+For a from-scratch reproduction, direct its gitignored output to a temporary
+directory:
+
+```bash
+python script/gift_eval/evaluate.py \
+  --data-root /path/to/gift_eval_raw \
+  --output-dir tmp/gift_eval_repro
+```
+
+## TIME Benchmark
+
+The complete local 98-task TIME submission is archived under
+`script/time_benchmark/`. It includes the official runner, validation, pinned
+analysis script, parameter-Pareto tables, submission disclosure, and a run
+manifest. The run used Apple MPS, batch size 512, and the FP32 release
+checkpoint; all 98 tasks completed.
+
+| Scope | Normalized MASE | Normalized CRPS | MASE rank | CRPS rank |
+| --- | ---: | ---: | ---: | ---: |
+| Short | 0.701284 | 0.586018 | 25 / 29 | 24 / 29 |
+| Medium | 0.855065 | 0.736344 | 25 / 29 | 24 / 29 |
+| Long | 0.833422 | 0.708427 | 24 / 29 | 20 / 29 |
+| **Overall** | **0.767965** | **0.649192** | **24 / 29** | **24 / 29** |
+
+Fracast-0 is non-dominated on both parameter-MASE and parameter-CRPS fronts
+with 85,001 parameters. Of the 98 tasks, 47 use the released 48-step head with
+median-quantile feedback beyond 48 steps; this is disclosed in every raw task
+configuration and is not presented as a strict official-protocol result. The
+raw 98-task output is in
+[TIME-Output discussion #42](https://huggingface.co/datasets/Real-TSF/TIME-Output/discussions/42),
+which remains open and has not completed benchmark review or recomputation.
 
 ## FEV-Bench
 
@@ -428,9 +464,10 @@ python script/fev_bench/analyze.py --fev-repo tmp/fev --out-dir output/fev_analy
 | `output/` | full training runs and checkpoints |
 | `tmp/` | smoke runs, temporary configs, and diagnostics |
 
-All runtime directories are ignored by Git.  Only the small `weights/`
-safetensors release artifacts are committed; PyTorch training checkpoints and
-benchmark outputs are not.
+All runtime directories are ignored by Git. The small release checkpoints and
+the compact GIFT-Eval, FEV-Bench, and TIME submission archives are committed;
+PyTorch training checkpoints, raw benchmark workspaces, and generated runtime
+outputs are not.
 
 ## Reproducibility
 
@@ -451,7 +488,9 @@ python script/tests/test_fracast_unit.py
 python script/tests/test_head_future_conv.py
 python script/tests/test_resume_stream.py
 python script/tests/test_fracast_release.py
+python script/tests/test_gift_eval_artifacts.py
 python script/tests/test_fev_bench_artifacts.py
+python script/tests/test_time_benchmark_artifacts.py
 ```
 
 ## Acknowledgements
@@ -463,6 +502,8 @@ public pretraining corpora:
   97-configuration evaluation protocol used for the public result.
 - [FEV-Bench](https://github.com/autogluon/fev) provides the 100-dataset
   evaluation protocol and leaderboard submission format.
+- [TIME](https://github.com/zqiao11/TIME) provides the 98-task evaluation
+  workflow, output format, and leaderboard submission protocol.
 - [TinyCast](https://github.com/raws-labs/tinycast) provides the compact
   design baseline and the Apache-2.0 components recorded in
   `THIRD_PARTY_NOTICES.md`.

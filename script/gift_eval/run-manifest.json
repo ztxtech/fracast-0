@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "benchmark": {
+    "name": "GIFT-Eval",
+    "repository": "https://github.com/SalesforceAIResearch/gift-eval",
+    "official_commit": "4d5ab3fa0fe7451bbf59bb1ff6dd76e6e414d64a",
+    "protocol": "official 97-configuration test protocol"
+  },
+  "model": {
+    "name": "Fracast-0",
+    "model_id": "ztxtech/fracast-0",
+    "parameter_count": 85001,
+    "weights": "fp32",
+    "weights_sha256": "0d678f123f3d1f91c5065cca2b5d40eccc469360afc2381b27290486011ded2c"
+  },
+  "evaluation": {
+    "batch_size": 512,
+    "configurations_completed": 97,
+    "configurations_total": 97,
+    "task_failures": 0,
+    "metrics_per_configuration": 11,
+    "normalization": "Seasonal_Naive by configuration, geometric mean over 97 configurations",
+    "run_locally_only": true
+  },
+  "results": {
+    "short": {
+      "configurations": 55,
+      "normalized_mase": 0.769573,
+      "normalized_mwql": 0.568038
+    },
+    "medium": {
+      "configurations": 21,
+      "normalized_mase": 0.842959,
+      "normalized_mwql": 0.557024
+    },
+    "long": {
+      "configurations": 21,
+      "normalized_mase": 0.875558,
+      "normalized_mwql": 0.555953
+    },
+    "overall": {
+      "configurations": 97,
+      "normalized_mase": 0.807133,
+      "normalized_mwql": 0.563008
+    }
+  },
+  "submission": {
+    "method": "GitHub pull request",
+    "pull_request": "https://github.com/SalesforceAIResearch/gift-eval/pull/215",
+    "head_commit": "b8d6cb110fe0acd3c1ed97cc2b994120b8763dc0",
+    "state": "open",
+    "checks_passed": true,
+    "file_count": 2
+  },
+  "disclosures": [
+    "The result is labeled pretrained, not zero-shot.",
+    "The complete pretraining recipe includes dataset families present in the GIFT-Eval test corpus.",
+    "testdata_leakage is Yes under the official dataset-level rule."
+  ],
+  "artifacts": {
+    "analysis/protocol_summary.csv": "71722d8473999f3fe2edf66272725e06e757973fd18c86a0cb1818327f73a57d",
+    "results/Fracast-0/all_results.csv": "09118b804e0f20895991d9ce993bb60be8ef6f80fe5c35bb88820bbe4dc30c3b",
+    "results/Fracast-0/config.json": "94a7b09e963336c8251664830796088b36cc60ea0d017b52ae89562523f8da8e"
+  }
+}

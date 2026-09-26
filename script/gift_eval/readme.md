@@ -1,12 +1,19 @@
-# GIFT-Eval submission
+# GIFT-Eval Benchmark archive
 
 `evaluate.py` runs the official 97-configuration protocol and produces the two
 files required by a GIFT-Eval leaderboard pull request:
 
 ```text
-results/Fracast-0/all_results.csv
-results/Fracast-0/config.json
+script/gift_eval/results/Fracast-0/all_results.csv
+script/gift_eval/results/Fracast-0/config.json
 ```
+
+The archived submission is the FP32 release result submitted to
+[GIFT-Eval PR #215](https://github.com/SalesforceAIResearch/gift-eval/pull/215);
+the pull request remains open with all automated checks passing.
+`analysis/protocol_summary.csv` stores its official short, medium, long, and
+overall aggregates. The evaluator's default `results/Fracast-0` directory remains
+gitignored so a reproduction cannot overwrite the archived submission.
 
 The evaluator uses the official `gift_eval.data.Dataset`, GluonTS
 `evaluate_model`, and the standard 15-column result schema. Multivariate
@@ -70,3 +77,7 @@ python script/gift_eval/evaluate.py \
 
 Smoke output stays in the selected `--output-dir`; use a directory outside the
 submission result when performing diagnostic runs.
+
+Use `--output-dir tmp/gift_eval_repro` or another untracked directory when
+reproducing from scratch. After a complete run, validate the new CSV and config
+before comparing them with the archived submission.

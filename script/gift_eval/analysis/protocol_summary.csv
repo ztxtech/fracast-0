@@ -1,0 +1,5 @@
+protocol_split,configurations,normalized_mase,normalized_mwql
+short,55,0.769573,0.568038
+medium,21,0.842959,0.557024
+long,21,0.875558,0.555953
+overall,97,0.807133,0.563008

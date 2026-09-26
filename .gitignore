@@ -15,6 +15,8 @@ tmp/
 results/
 !script/fev_bench/results/
 !script/fev_bench/results/**
+!script/gift_eval/results/
+!script/gift_eval/results/**
 
 *.pt
 *.pth
