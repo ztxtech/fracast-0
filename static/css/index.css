@@ -1207,6 +1207,192 @@ body {
   font-size: 0.9rem;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.benchmark-table-wrap {
+  overflow-x: auto;
+  margin: 8px 0 18px;
+  background: var(--background-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+}
+
+.benchmark-table {
+  width: 100%;
+  min-width: 800px;
+  border-collapse: collapse;
+}
+
+.benchmark-table th,
+.benchmark-table td {
+  padding: 1rem 1.1rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.benchmark-table thead th {
+  color: #f8fafc;
+  background: #1e293b;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.benchmark-table tbody tr:last-child th,
+.benchmark-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.benchmark-table tbody th[scope="row"] {
+  min-width: 150px;
+  background: var(--background-secondary);
+}
+
+.benchmark-table tbody td:nth-child(2) {
+  min-width: 250px;
+}
+
+.benchmark-table a {
+  color: var(--primary-color);
+  font-weight: 750;
+}
+
+.metric-secondary {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.benchmark-status {
+  display: inline-block;
+  padding: 0.28rem 0.55rem;
+  border: 1px solid;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.benchmark-status a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.status-open {
+  color: #9a3412;
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+
+.status-merged {
+  color: #166534;
+  background: #ecfdf5;
+  border-color: #bbf7d0;
+}
+
+.benchmark-note {
+  max-width: 930px;
+  margin: 0 auto 32px;
+  color: var(--text-secondary);
+  text-align: center;
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.reference-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.resource-group {
+  padding: 1.5rem;
+  background: var(--background-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+}
+
+.resource-group h3 {
+  margin-bottom: 0.9rem;
+  color: var(--text-primary);
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.resource-group ul {
+  margin: 0;
+  padding-left: 1.15rem;
+}
+
+.resource-group li {
+  margin: 0.65rem 0;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.resource-group a {
+  color: var(--primary-color);
+  font-weight: 700;
+}
+
+.thanks-callout,
+.support-callout {
+  max-width: 930px;
+  margin: 0 auto;
+  padding: 2rem 2.2rem;
+  border: 1px solid var(--border-color);
+  border-left: 5px solid var(--primary-color);
+  border-radius: 8px;
+}
+
+.thanks-callout {
+  background: var(--background-secondary);
+}
+
+.support-callout {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  border-left-color: #10b981;
+}
+
+.thanks-callout h2,
+.support-callout h2 {
+  margin-bottom: 0.65rem;
+  color: var(--text-primary);
+  font-size: 1.7rem;
+  font-weight: 800;
+}
+
+.thanks-callout p,
+.support-callout p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+  line-height: 1.75;
+}
+
+.thanks-callout a,
+.support-callout a {
+  color: var(--primary-color);
+  font-weight: 750;
+}
+
+.sponsor-email {
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 900px) {
   .site-nav {
     display: none;
@@ -1224,6 +1410,10 @@ body {
   }
 
   .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .reference-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1282,6 +1472,15 @@ body {
     grid-template-columns: 1fr;
   }
 
+  .reference-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .benchmark-table-wrap {
+    margin-right: -0.35rem;
+    margin-left: -0.35rem;
+  }
+
   .metric-card {
     min-height: 132px;
   }
@@ -1301,6 +1500,11 @@ body {
   .footer-grid nav {
     justify-content: flex-start;
   }
+
+  .thanks-callout,
+  .support-callout {
+    padding: 1.6rem 1.25rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1313,4 +1517,3 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
-

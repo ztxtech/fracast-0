@@ -75,7 +75,9 @@
         <a href="#architecture">Architecture</a>
         <a href="#results">Results</a>
         <a href="#forecasts">Forecasts</a>
+        <a href="#references">References</a>
         <a href="#citation">Citation</a>
+        <a href="#support">Support</a>
       </nav>
       <div class="nav-actions">
         <a href="https://github.com/ztxtech/fracast-0" target="_blank" rel="noopener">Code</a>
@@ -173,12 +175,56 @@
         <div class="metric-grid">
           <article class="metric-card"><span class="metric-value">85,001</span><span class="metric-label">Parameters</span></article>
           <article class="metric-card"><span class="metric-value">−42.0%</span><span class="metric-label">Parameters versus TinyCast</span></article>
-          <article class="metric-card"><span class="metric-value">0.808</span><span class="metric-label">Overall MASE</span></article>
-          <article class="metric-card"><span class="metric-value">0.564</span><span class="metric-label">Overall WQL</span></article>
+          <article class="metric-card"><span class="metric-value">0.807</span><span class="metric-label">Overall MASE</span></article>
+          <article class="metric-card"><span class="metric-value">0.563</span><span class="metric-label">Overall WQL</span></article>
           <article class="metric-card"><span class="metric-value">23.9 ms</span><span class="metric-label">Median CPU latency</span></article>
           <article class="metric-card"><span class="metric-value">97</span><span class="metric-label">GIFT-Eval configurations</span></article>
         </div>
         <p class="section-note">Scores use the official GIFT-Eval protocol without per-dataset fine-tuning. The model is pretrained on corpora that overlap GIFT-Eval families, so these results are labeled pretrained rather than strict zero-shot. Lower MASE and WQL are better.</p>
+
+        <div class="benchmark-table-wrap" role="region" aria-label="Benchmark results" tabindex="0">
+          <table class="benchmark-table">
+            <caption class="sr-only">Fracast-0 results across GIFT-Eval, TIME, and FEV-Bench</caption>
+            <thead>
+              <tr>
+                <th scope="col">Benchmark</th>
+                <th scope="col">Headline result</th>
+                <th scope="col">Scope</th>
+                <th scope="col">Submission status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row"><a href="https://huggingface.co/spaces/Salesforce/GIFT-Eval" target="_blank" rel="noopener">GIFT-Eval</a></th>
+                <td>
+                  <strong>Normalized MASE 0.807133</strong>
+                  <span class="metric-secondary">Normalized MWQL 0.563008</span>
+                </td>
+                <td>97 configurations</td>
+                <td><span class="benchmark-status status-open"><a href="https://github.com/SalesforceAIResearch/gift-eval/pull/215" target="_blank" rel="noopener">PR #215: open</a></span></td>
+              </tr>
+              <tr>
+                <th scope="row"><a href="https://huggingface.co/spaces/Real-TSF/TIME-leaderboard" target="_blank" rel="noopener">TIME</a></th>
+                <td>
+                  <strong>Normalized MASE 0.767965</strong>
+                  <span class="metric-secondary">Normalized CRPS 0.649192</span>
+                </td>
+                <td>98 tasks; rank 24/29 on both metrics</td>
+                <td><span class="benchmark-status status-merged"><a href="https://huggingface.co/datasets/Real-TSF/TIME-Output/discussions/42" target="_blank" rel="noopener">Merged</a></span></td>
+              </tr>
+              <tr>
+                <th scope="row"><a href="https://github.com/autogluon/fev" target="_blank" rel="noopener">FEV-Bench</a></th>
+                <td>
+                  <strong>Controlled MASE rank 16/30</strong>
+                  <span class="metric-secondary">Controlled SQL rank 16/30</span>
+                </td>
+                <td>100 tasks; raw ranks MASE 20/30 and SQL 17/30</td>
+                <td><span class="benchmark-status status-open"><a href="https://github.com/autogluon/fev/pull/189" target="_blank" rel="noopener">PR #189: open</a></span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="benchmark-note">TIME submission is merged into the official output repository. GIFT-Eval and FEV-Bench submissions remain open pull requests; their displayed values are reproduced from the archived local protocol runs.</p>
 
         <div class="figure-grid">
           <figure class="figure-card">
@@ -251,6 +297,40 @@
       </div>
     </section>
 
+    <section class="section" id="references">
+      <div class="container is-max-desktop">
+        <h2 class="title is-3 section-title">References and resources</h2>
+        <div class="reference-grid">
+          <article class="resource-group">
+            <h3>Benchmarks</h3>
+            <ul>
+              <li><a href="https://github.com/SalesforceAIResearch/gift-eval" target="_blank" rel="noopener">GIFT-Eval</a> and its <a href="https://huggingface.co/spaces/Salesforce/GIFT-Eval" target="_blank" rel="noopener">leaderboard</a></li>
+              <li><a href="https://github.com/zqiao11/TIME" target="_blank" rel="noopener">TIME</a> and its <a href="https://huggingface.co/spaces/Real-TSF/TIME-leaderboard" target="_blank" rel="noopener">leaderboard</a></li>
+              <li><a href="https://github.com/autogluon/fev" target="_blank" rel="noopener">FEV-Bench</a></li>
+            </ul>
+          </article>
+          <article class="resource-group">
+            <h3>Training datasets</h3>
+            <ul>
+              <li><a href="https://huggingface.co/datasets/Salesforce/GiftEvalPretrain" target="_blank" rel="noopener">GiftEvalPretrain</a></li>
+              <li><a href="https://huggingface.co/datasets/Salesforce/lotsa_data" target="_blank" rel="noopener">LOSA</a></li>
+              <li><a href="https://huggingface.co/datasets/autogluon/chronos_datasets" target="_blank" rel="noopener">Chronos datasets</a></li>
+              <li><a href="https://huggingface.co/datasets/Datadog/BOOM" target="_blank" rel="noopener">BOOM</a></li>
+              <li><a href="https://huggingface.co/datasets/autogluon/fev_datasets" target="_blank" rel="noopener">FEV datasets</a></li>
+            </ul>
+          </article>
+          <article class="resource-group">
+            <h3>Baseline and development</h3>
+            <ul>
+              <li><a href="https://github.com/raws-labs/tinycast" target="_blank" rel="noopener">TinyCast</a></li>
+              <li><a href="https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Pro-RL" target="_blank" rel="noopener">Xiaomi MiMo V2.6 Pro</a></li>
+              <li><a href="https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash" target="_blank" rel="noopener">DeepSeek V4.1 Flash</a></li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
     <section class="section is-light" id="citation">
       <div class="container is-max-desktop">
         <h2 class="title is-3 section-title">Citation</h2>
@@ -263,6 +343,24 @@
 }</code></pre>
         </div>
         <button class="copy-bibtex-btn" type="button" onclick="copyBibTeX()"><span class="copy-text">Copy</span></button>
+      </div>
+    </section>
+
+    <section class="section" id="thanks" aria-label="Acknowledgements">
+      <div class="container is-max-desktop">
+        <div class="thanks-callout">
+          <h2>Thanks</h2>
+          <p>We thank <a href="https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Pro-RL" target="_blank" rel="noopener">Xiaomi MiMo V2.6 Pro</a> and <a href="https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash" target="_blank" rel="noopener">DeepSeek V4.1 Flash</a> for supporting the implementation, debugging, and release work behind Fracast-0.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section is-light" id="support">
+      <div class="container is-max-desktop">
+        <div class="support-callout">
+          <h2>Sponsorship</h2>
+          <p>We are seeking sponsors for continued research, API credits, and server resources. Contact us at <a class="sponsor-email" href="mailto:zhantianxianguestc@hotmail.com?subject=Fracast-0%20Sponsorship">zhantianxianguestc@hotmail.com</a>.</p>
+        </div>
       </div>
     </section>
   </main>
