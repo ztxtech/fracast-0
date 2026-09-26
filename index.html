@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fracast-0: Fractal Weight Sharing for a Time Series Foundation Model with Only 85K Parameters</title>
+  <meta name="description" content="Fracast-0 is an 85,001-parameter probabilistic time-series foundation model that reuses one operator across temporal scales and stays non-dominated among 28 released checkpoints.">
+  <meta name="keywords" content="time series foundation model, probabilistic forecasting, model compression, fractal weight sharing, GIFT-Eval">
+  <meta name="author" content="Tianxiang Zhan, Huanyao Zhang, Yuanpeng He">
+  <meta name="language" content="English">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://ztxtech.github.io/fracast-0/">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Fracast-0">
+  <meta property="og:title" content="Fracast-0: Fractal Weight Sharing for a Time Series Foundation Model with Only 85K Parameters">
+  <meta property="og:description" content="An 85,001-parameter probabilistic time-series foundation model that reuses one operator across temporal scales.">
+  <meta property="og:url" content="https://ztxtech.github.io/fracast-0/">
+  <meta property="og:image" content="https://ztxtech.github.io/fracast-0/static/images/social-preview.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Fracast-0 project page preview with the model architecture and headline results">
+  <meta property="article:published_time" content="2026-09-26T00:00:00+08:00">
+  <meta property="article:author" content="Tianxiang Zhan">
+  <meta property="article:section" content="Research">
+  <meta property="article:tag" content="time series foundation model">
+  <meta property="article:tag" content="probabilistic forecasting">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Fracast-0: Fractal Weight Sharing for a Time Series Foundation Model with Only 85K Parameters">
+  <meta name="twitter:description" content="An 85,001-parameter probabilistic time-series foundation model that reuses one operator across temporal scales.">
+  <meta name="twitter:image" content="https://ztxtech.github.io/fracast-0/static/images/social-preview.png">
+
+  <link rel="icon" type="image/png" href="static/images/favicon.png">
+  <link rel="apple-touch-icon" href="static/images/favicon.png">
+  <link rel="stylesheet" href="static/css/bulma.min.css">
+  <link rel="stylesheet" href="static/css/index.css">
+  <script defer src="static/js/index.js"></script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ScholarlyArticle",
+    "headline": "Fracast-0: Fractal Weight Sharing for a Time Series Foundation Model with Only 85K Parameters",
+    "description": "Fracast-0 is an 85,001-parameter probabilistic time-series foundation model that reuses one operator across temporal scales and stays non-dominated among 28 released checkpoints.",
+    "author": [
+      {"@type": "Person", "name": "Tianxiang Zhan", "affiliation": {"@type": "Organization", "name": "University of Electronic Science and Technology of China"}},
+      {"@type": "Person", "name": "Huanyao Zhang", "affiliation": {"@type": "Organization", "name": "Peking University"}},
+      {"@type": "Person", "name": "Yuanpeng He", "affiliation": {"@type": "Organization", "name": "Peking University"}}
+    ],
+    "datePublished": "2026-09-26",
+    "url": "https://ztxtech.github.io/fracast-0/",
+    "image": "https://ztxtech.github.io/fracast-0/static/images/social-preview.png",
+    "isAccessibleForFree": true,
+    "license": "https://github.com/ztxtech/fracast-0/blob/main/LICENSE",
+    "keywords": ["time series foundation model", "probabilistic forecasting", "model compression", "GIFT-Eval"]
+  }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+
+  <header class="site-header" aria-label="Site navigation">
+    <div class="nav-shell">
+      <a class="brand" href="https://ztxtech.github.io/fracast-0/" aria-label="Fracast-0 home">
+        <img src="static/images/logoztxtech.png" alt="ZTX Tech logo" width="150" height="32">
+      </a>
+      <nav class="site-nav" aria-label="Page sections">
+        <a href="#idea">Idea</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#results">Results</a>
+        <a href="#forecasts">Forecasts</a>
+        <a href="#citation">Citation</a>
+      </nav>
+      <div class="nav-actions">
+        <a href="https://github.com/ztxtech/fracast-0" target="_blank" rel="noopener">Code</a>
+        <a href="https://huggingface.co/ztxtech/fracast-0" target="_blank" rel="noopener">Model</a>
+        <a class="demo-link" href="https://huggingface.co/spaces/ztxtech/fracast-0-demo" target="_blank" rel="noopener">Demo</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="hero" id="overview">
+      <div class="container is-max-desktop">
+        <div class="hero-content">
+          <p class="hero-eyebrow">85K-parameter time series foundation model</p>
+          <h1 class="publication-title">Fracast-0: Fractal Weight Sharing for a Time Series Foundation Model with Only 85K Parameters</h1>
+          <p class="publication-authors">
+            <span>Tianxiang Zhan<sup>1</sup>,</span>
+            <span>Huanyao Zhang<sup>2</sup>,</span>
+            <span>Yuanpeng He<sup>†,2</sup></span>
+          </p>
+          <p class="publication-affiliations">
+            <span><sup>1</sup> University of Electronic Science and Technology of China</span>
+            <span><sup>2</sup> Peking University</span>
+            <span><sup>†</sup> Corresponding author</span>
+          </p>
+          <div class="publication-links">
+            <a class="external-link button is-normal is-rounded is-dark" href="https://github.com/ztxtech/fracast-0" target="_blank" rel="noopener">
+              <span>GitHub</span>
+            </a>
+            <a class="external-link button is-normal is-rounded is-dark" href="https://huggingface.co/ztxtech/fracast-0" target="_blank" rel="noopener">
+              <span>Hugging Face</span>
+            </a>
+            <a class="external-link button is-normal is-rounded is-dark" href="https://huggingface.co/spaces/ztxtech/fracast-0-demo" target="_blank" rel="noopener">
+              <span>Demo</span>
+            </a>
+          </div>
+          <p class="publication-status">Technical report in preparation</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section quote-section" aria-label="Release statement">
+      <div class="container is-max-desktop">
+        <figure class="release-quote">
+          <blockquote>
+            “We built this solely to explore whether model compression can be pushed to an even more extreme state. We spent 15 days on this exploration. Although the work is not perfect, it is at least usable, so we are releasing it. Fracast-0 is the published version, and future versions will only get better.”
+          </blockquote>
+          <figcaption>— Tianxiang Zhan</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="section" id="idea">
+      <div class="container is-max-desktop">
+        <h2 class="title is-3 section-title">The idea in one page</h2>
+        <div class="lead-grid">
+          <article class="info-card">
+            <span class="info-index">01</span>
+            <h3>Temporal structure repeats</h3>
+            <p>A daily cycle, a weekly shape, and a slower trend can express similar local structure at different resolutions. Fracast-0 treats that self-similarity as a compression opportunity.</p>
+          </article>
+          <article class="info-card">
+            <span class="info-index">02</span>
+            <h3>Reuse one operator</h3>
+            <p>Instead of giving every temporal scale a separate set of weights, the model applies one shared causal dilated block along a geometric dilation ladder. FiLM conditioning tells the block which scale it is operating on.</p>
+          </article>
+          <article class="info-card">
+            <span class="info-index">03</span>
+            <h3>Keep probability</h3>
+            <p>The decoder combines context-gathered states with an explicit seasonal future state and emits nine quantile forecasts from 0.1 through 0.9.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section is-light" id="architecture">
+      <div class="container is-max-desktop">
+        <h2 class="title is-3 section-title">Model architecture</h2>
+        <figure class="figure-card">
+          <img src="static/images/architecture.png" alt="Diagram showing Fracast-0 preprocessing, shared-scale encoder, and decoder producing quantile forecasts" loading="lazy">
+          <figcaption>Fracast-0 turns a univariate context into nine quantiles in three stages: preprocessing with a parameter-free seasonal detector, an encoder with a shared block over a dilation ladder, and a decoder with an explicit future-state path.</figcaption>
+        </figure>
+        <div class="steps-grid">
+          <article><h3>Preprocess</h3><p>Normalize each window, preserve missingness, and derive bounded recency features plus a seasonal prior.</p></article>
+          <article><h3>Encode</h3><p>Project seven input features to the hidden width, then reuse the same local block across scales with scale conditioning.</p></article>
+          <article><h3>Decode</h3><p>Gather relevant context states, combine them with a periodic future state, and map the result to the target horizon.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="results">
+      <div class="container is-max-desktop">
+        <h2 class="title is-3 section-title">How well does it work?</h2>
+        <div class="metric-grid">
+          <article class="metric-card"><span class="metric-value">85,001</span><span class="metric-label">Parameters</span></article>
+          <article class="metric-card"><span class="metric-value">−42.0%</span><span class="metric-label">Parameters versus TinyCast</span></article>
+          <article class="metric-card"><span class="metric-value">0.808</span><span class="metric-label">Overall MASE</span></article>
+          <article class="metric-card"><span class="metric-value">0.564</span><span class="metric-label">Overall WQL</span></article>
+          <article class="metric-card"><span class="metric-value">23.9 ms</span><span class="metric-label">Median CPU latency</span></article>
+          <article class="metric-card"><span class="metric-value">97</span><span class="metric-label">GIFT-Eval configurations</span></article>
+        </div>
+        <p class="section-note">Scores use the official GIFT-Eval protocol without per-dataset fine-tuning. The model is pretrained on corpora that overlap GIFT-Eval families, so these results are labeled pretrained rather than strict zero-shot. Lower MASE and WQL are better.</p>
+
+        <div class="figure-grid">
+          <figure class="figure-card">
+            <img src="static/images/scaling-mase.png" alt="Scatter plot of normalized MASE against parameter count" loading="lazy">
+            <figcaption>Normalized MASE across released checkpoints. Lines connect checkpoints from the same model family.</figcaption>
+          </figure>
+          <figure class="figure-card">
+            <img src="static/images/scaling-wql.png" alt="Scatter plot of normalized weighted quantile loss against parameter count" loading="lazy">
+            <figcaption>The same comparison on WQL. Fracast-0 occupies the extreme low-parameter end.</figcaption>
+          </figure>
+        </div>
+
+        <figure class="figure-card">
+          <img src="static/images/pareto.png" alt="Parameter-accuracy Pareto frontier plots" loading="lazy">
+          <figcaption>Fracast-0 is non-dominated among 28 evaluated checkpoints. Moving from Fracast-0 to TinyCast spends 1.72 times more parameters for 4.2% lower MASE and 3.3% lower WQL.</figcaption>
+        </figure>
+
+        <figure class="figure-card">
+          <img src="static/images/horizon.png" alt="Plots of normalized MASE versus parameters for short, medium, and long horizons" loading="lazy">
+          <figcaption>Short-horizon performance is close to TinyCast. Medium and long horizons remain the main room for improvement.</figcaption>
+        </figure>
+
+        <div class="figure-grid">
+          <figure class="figure-card">
+            <img src="static/images/cpu-latency.png" alt="Bar chart of batch-one CPU latency" loading="lazy">
+            <figcaption>On a fixed local CPU workload, Fracast-0 reports 23.9 ms versus 41.4 ms for TinyCast.</figcaption>
+          </figure>
+          <figure class="figure-card">
+            <img src="static/images/cpu-memory.png" alt="Bar chart of resident CPU memory" loading="lazy">
+            <figcaption>The same workload reports 389 MiB versus 471 MiB resident memory.</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="section is-light" id="forecasts">
+      <div class="container is-max-desktop">
+        <h2 class="title is-3 section-title">Qualitative forecasts</h2>
+        <p class="section-note">Six selected GIFT-Eval windows cover smooth levels, abrupt load changes, daily weather cycles, periodic solar generation, and noisy event counts. The shaded band is Fracast-0’s 10–90% interval.</p>
+        <figure class="figure-card legend-card">
+          <img src="static/images/forecasts/legend.png" alt="Legend for qualitative forecast comparisons" loading="lazy">
+        </figure>
+        <div class="forecast-grid">
+          <figure class="figure-card"><img src="static/images/forecasts/panel-01.png" alt="Qualitative short-horizon forecast panel one" loading="lazy"></figure>
+          <figure class="figure-card"><img src="static/images/forecasts/panel-02.png" alt="Qualitative short-horizon forecast panel two" loading="lazy"></figure>
+          <figure class="figure-card"><img src="static/images/forecasts/panel-03.png" alt="Qualitative short-horizon forecast panel three" loading="lazy"></figure>
+          <figure class="figure-card"><img src="static/images/forecasts/panel-04.png" alt="Qualitative short-horizon forecast panel four" loading="lazy"></figure>
+          <figure class="figure-card"><img src="static/images/forecasts/panel-05.png" alt="Qualitative short-horizon forecast panel five" loading="lazy"></figure>
+          <figure class="figure-card"><img src="static/images/forecasts/panel-06.png" alt="Qualitative short-horizon forecast panel six" loading="lazy"></figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="try-it">
+      <div class="container is-max-desktop">
+        <h2 class="title is-3 section-title">Try it locally</h2>
+        <div class="code-card">
+          <pre><code>python -m pip install fracast</code></pre>
+        </div>
+        <div class="boundary-grid">
+          <article>
+            <h3>Good fit</h3>
+            <p>Univariate or channel-independent forecasting, memory-constrained deployment, probabilistic outputs, and short-horizon scoring on CPU.</p>
+          </article>
+          <article>
+            <h3>Current limits</h3>
+            <p>The released model is channel independent, natively predicts 48 steps per block, and needs rollout for longer horizons. The W8 export dequantizes weights and is not an integer-only kernel.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section is-light" id="citation">
+      <div class="container is-max-desktop">
+        <h2 class="title is-3 section-title">Citation</h2>
+        <div class="code-card">
+          <pre id="bibtex-code"><code>@software{ztxtech_fracast_0,
+  author = {Zhan, Tianxiang and Zhang, Huanyao and He, Yuanpeng},
+  title = {Fracast-0: Fractal Weight Sharing for a Time Series Foundation Model with Only 85K Parameters},
+  year = {2026},
+  url = {https://github.com/ztxtech/fracast-0}
+}</code></pre>
+        </div>
+        <button class="copy-bibtex-btn" type="button" onclick="copyBibTeX()"><span class="copy-text">Copy</span></button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container is-max-desktop">
+      <div class="footer-grid">
+        <div>
+          <img class="footer-logo" src="static/images/logoztxtech.png" alt="ZTX Tech logo" loading="lazy">
+          <p>Fracast-0 is released under the Apache-2.0 license.</p>
+        </div>
+        <nav aria-label="Project links">
+          <a href="https://github.com/ztxtech/fracast-0" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://huggingface.co/ztxtech/fracast-0" target="_blank" rel="noopener">Hugging Face</a>
+          <a href="https://huggingface.co/spaces/ztxtech/fracast-0-demo" target="_blank" rel="noopener">Demo</a>
+          <a href="https://pypi.org/project/fracast/" target="_blank" rel="noopener">PyPI</a>
+        </nav>
+      </div>
+      <p class="footer-attribution">Page layout adapted from the <a href="https://github.com/eliahuhorwitz/Academic-project-page-template" target="_blank" rel="noopener">Academic Project Page Template</a>.</p>
+    </div>
+  </footer>
+
+  <button class="scroll-to-top" type="button" onclick="scrollToTop()" aria-label="Scroll to top">
+    <span aria-hidden="true">&uarr;</span>
+  </button>
+</body>
+</html>
