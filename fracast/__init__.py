@@ -1,5 +1,6 @@
-"""Public Python API for Fracast releases."""
+"""Public Python API for Fracast."""
 
-from module.fracast.hf_inference import FracastModel
+from fracast.inference import FracastModel
 
 __all__ = ["FracastModel"]
+__version__ = "0.1.0"

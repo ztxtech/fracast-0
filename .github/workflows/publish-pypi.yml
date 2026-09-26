@@ -1,0 +1,87 @@
+name: Build and publish Fracast
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-version:
+    name: Check PyPI version
+    runs-on: ubuntu-latest
+    outputs:
+      exists: ${{ steps.version.outputs.exists }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Read whether this version is already published
+        id: version
+        shell: bash
+        run: |
+          python - <<'PY'
+          import tomllib
+          import urllib.error
+          import urllib.request
+          import os
+
+          with open("pyproject.toml", "rb") as stream:
+              version = tomllib.load(stream)["project"]["version"]
+          url = f"https://pypi.org/pypi/fracast/{version}/json"
+          try:
+              urllib.request.urlopen(url, timeout=15).close()
+              exists = "true"
+          except urllib.error.HTTPError as exc:
+              if exc.code != 404:
+                  raise
+              exists = "false"
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as stream:
+              stream.write(f"exists={exists}\n")
+              stream.write(f"version={version}\n")
+          PY
+
+  build:
+    name: Build distributions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install build tools
+        run: python -m pip install --upgrade build twine
+      - name: Build and inspect
+        run: |
+          python -m build
+          python -m twine check dist/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fracast-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    name: Publish to PyPI
+    needs: [check-version, build]
+    if: needs.check-version.outputs.exists == 'false'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/fracast
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: fracast-${{ github.sha }}
+          path: dist
+      - name: Publish distributions
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true

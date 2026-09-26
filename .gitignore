@@ -1,5 +1,8 @@
 .venv/
 .cache/
+build/
+dist/
+*.egg-info/
 __pycache__/
 *.py[cod]
 *.so
@@ -16,6 +19,8 @@ tmp/
 
 !weights/model.safetensors
 !weights/model.int8.safetensors
+!fracast/weights/model.safetensors
+!fracast/weights/model.int8.safetensors
 
 .huggingface/
 *.lock

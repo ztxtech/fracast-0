@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fracast"
+version = "0.1.0"
+description = "Compact time-series foundation model with bundled Fracast-0 weights"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{name = "Fracast contributors"}]
+keywords = ["time-series", "forecasting", "foundation-model", "probabilistic-forecasting"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+  "huggingface_hub>=0.23",
+  "numpy>=1.24",
+  "safetensors>=0.4",
+  "torch>=2.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/ztxtech/fracast-0"
+Repository = "https://github.com/ztxtech/fracast-0"
+Issues = "https://github.com/ztxtech/fracast-0/issues"
+Documentation = "https://github.com/ztxtech/fracast-0#readme"
+HuggingFace = "https://huggingface.co/ztxtech/fracast-0"
+
+[tool.setuptools.packages.find]
+include = ["fracast*"]
+
+[tool.setuptools.package-data]
+fracast = ["py.typed", "weights/*.json", "weights/*.md", "weights/*.safetensors"]

@@ -1,0 +1,148 @@
+{
+  "format": "fracast-w8-symmetric-per-output-channel",
+  "quant_map": {
+    "core.block.dw_weight": {
+      "qweight": "core.block.dw_weight.qweight",
+      "scale": "core.block.dw_weight.scale",
+      "scheme": "symmetric_per_output_channel",
+      "axis": 0,
+      "dtype": "int8"
+    },
+    "core.block.ffn.down.weight": {
+      "qweight": "core.block.ffn.down.weight.qweight",
+      "scale": "core.block.ffn.down.weight.scale",
+      "scheme": "symmetric_per_output_channel",
+      "axis": 0,
+      "dtype": "int8"
+    },
+    "core.block.ffn.up.weight": {
+      "qweight": "core.block.ffn.up.weight.qweight",
+      "scale": "core.block.ffn.up.weight.scale",
+      "scheme": "symmetric_per_output_channel",
+      "axis": 0,
+      "dtype": "int8"
+    },
+    "core.block.pw.weight": {
+      "qweight": "core.block.pw.weight.qweight",
+      "scale": "core.block.pw.weight.scale",
+      "scheme": "symmetric_per_output_channel",
+      "axis": 0,
+      "dtype": "int8"
+    },
+    "core.in_proj.weight": {
+      "qweight": "core.in_proj.weight.qweight",
+      "scale": "core.in_proj.weight.scale",
+      "scheme": "symmetric_per_output_channel",
+      "axis": 0,
+      "dtype": "int8"
+    },
+    "core.periodic.proj.weight": {
+      "qweight": "core.periodic.proj.weight.qweight",
+      "scale": "core.periodic.proj.weight.scale",
+      "scheme": "symmetric_per_output_channel",
+      "axis": 0,
+      "dtype": "int8"
+    },
+    "core.scale.to_gb.weight": {
+      "qweight": "core.scale.to_gb.weight.qweight",
+      "scale": "core.scale.to_gb.weight.scale",
+      "scheme": "symmetric_per_output_channel",
+      "axis": 0,
+      "dtype": "int8"
+    },
+    "head.decoder_ffns.0.down.weight": {
+      "qweight": "head.decoder_ffns.0.down.weight.qweight",
+      "scale": "head.decoder_ffns.0.down.weight.scale",
+      "scheme": "symmetric_per_output_channel",
+      "axis": 0,
+      "dtype": "int8"
+    },
+    "head.decoder_ffns.0.up.weight": {
+      "qweight": "head.decoder_ffns.0.up.weight.qweight",
+      "scale": "head.decoder_ffns.0.up.weight.scale",
+      "scheme": "symmetric_per_output_channel",
+      "axis": 0,
+      "dtype": "int8"
+    },
+    "head.decoder_norms.0.weight": {
+      "qweight": "head.decoder_norms.0.weight.qweight",
+      "scale": "head.decoder_norms.0.weight.scale",
+      "scheme": "symmetric_per_output_channel",
+      "axis": 0,
+      "dtype": "int8"
+    },
+    "head.fc_blocks.0.dw_weight": {
+      "qweight": "head.fc_blocks.0.dw_weight.qweight",
+      "scale": "head.fc_blocks.0.dw_weight.scale",
+      "scheme": "symmetric_per_output_channel",
+      "axis": 0,
+      "dtype": "int8"
+    },
+    "head.fc_blocks.1.dw_weight": {
+      "qweight": "head.fc_blocks.1.dw_weight.qweight",
+      "scale": "head.fc_blocks.1.dw_weight.scale",
+      "scheme": "symmetric_per_output_channel",
+      "axis": 0,
+      "dtype": "int8"
+    },
+    "head.future_conv.block.dw_weight": {
+      "qweight": "head.future_conv.block.dw_weight.qweight",
+      "scale": "head.future_conv.block.dw_weight.scale",
+      "scheme": "symmetric_per_output_channel",
+      "axis": 0,
+      "dtype": "int8"
+    },
+    "head.future_conv.block.ffn.down.weight": {
+      "qweight": "head.future_conv.block.ffn.down.weight.qweight",
+      "scale": "head.future_conv.block.ffn.down.weight.scale",
+      "scheme": "symmetric_per_output_channel",
+      "axis": 0,
+      "dtype": "int8"
+    },
+    "head.future_conv.block.ffn.up.weight": {
+      "qweight": "head.future_conv.block.ffn.up.weight.qweight",
+      "scale": "head.future_conv.block.ffn.up.weight.scale",
+      "scheme": "symmetric_per_output_channel",
+      "axis": 0,
+      "dtype": "int8"
+    },
+    "head.future_conv.block.pw.weight": {
+      "qweight": "head.future_conv.block.pw.weight.qweight",
+      "scale": "head.future_conv.block.pw.weight.scale",
+      "scheme": "symmetric_per_output_channel",
+      "axis": 0,
+      "dtype": "int8"
+    },
+    "head.future_conv.in_proj.weight": {
+      "qweight": "head.future_conv.in_proj.weight.qweight",
+      "scale": "head.future_conv.in_proj.weight.scale",
+      "scheme": "symmetric_per_output_channel",
+      "axis": 0,
+      "dtype": "int8"
+    },
+    "head.future_conv.out_proj.weight": {
+      "qweight": "head.future_conv.out_proj.weight.qweight",
+      "scale": "head.future_conv.out_proj.weight.scale",
+      "scheme": "symmetric_per_output_channel",
+      "axis": 0,
+      "dtype": "int8"
+    },
+    "head.out_proj.weight": {
+      "qweight": "head.out_proj.weight.qweight",
+      "scale": "head.out_proj.weight.scale",
+      "scheme": "symmetric_per_output_channel",
+      "axis": 0,
+      "dtype": "int8"
+    },
+    "head.summary_proj.weight": {
+      "qweight": "head.summary_proj.weight.qweight",
+      "scale": "head.summary_proj.weight.scale",
+      "scheme": "symmetric_per_output_channel",
+      "axis": 0,
+      "dtype": "int8"
+    }
+  },
+  "quantized_tensors": 20,
+  "storage_dtype": "int8",
+  "scale_dtype": "float32"
+}

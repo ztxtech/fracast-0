@@ -1,6 +1,7 @@
 # Fracast
 
 [![Repository](https://img.shields.io/badge/GitHub-fracast--0-181717?logo=github)](https://github.com/ztxtech/fracast-0)
+[![PyPI](https://img.shields.io/pypi/v/fracast?label=PyPI&color=3776AB)](https://pypi.org/project/fracast/)
 [![Model](https://img.shields.io/badge/Hugging%20Face-fracast--0-FFD21E?logo=huggingface)](https://huggingface.co/ztxtech/fracast-0)
 [![Demo](https://img.shields.io/badge/Space-fracast--0--demo-FFD21E?logo=huggingface)](https://huggingface.co/spaces/ztxtech/fracast-0-demo)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
@@ -26,6 +27,20 @@ This repository is the self-contained pretraining release.  It contains:
 The repository includes the small release checkpoints under `weights/`.
 Downloaded datasets, training runs, evaluation products, and runtime logs are
 created under `data/`, `output/`, and `tmp/`, all of which are gitignored.
+
+## Installation
+
+Install the Python package and its bundled Fracast-0 checkpoints with one
+command:
+
+```bash
+python -m pip install fracast
+```
+
+The package is self-contained: `FracastModel.from_pretrained()` reads the
+FP32 or W8 weights from the installed wheel without downloading a model
+repository. The GitHub workflow builds every push to `main` and publishes a
+new `pyproject.toml` version to PyPI when that version is not already online.
 
 ## Model
 
@@ -290,26 +305,35 @@ should be written under `tmp/` and passed to `main.py`.
 
 ## Python inference and benchmark
 
-The release weights can be loaded directly from this checkout or from the
-Hugging Face model repository:
+The installed package loads its bundled W8 checkpoint by default:
 
 ```python
 import numpy as np
 from fracast import FracastModel
 
-model = FracastModel.from_pretrained("weights", weights="w8", device="cpu")
+model = FracastModel.from_pretrained(device="cpu")
 context = np.sin(np.arange(240, dtype=np.float32) / 7.0)
 forecast = model.forecast(context)
 assert forecast.shape == (48, 9)
 
-# Independent series can share one batch invocation.
-batch = model.forecast_batch(np.stack([context, context * 0.5 + 2.0]))
-assert batch.shape == (2, 48, 9)
+# The native head predicts 48 steps. Longer horizons append median blocks and
+# re-normalize each 2,048-point context before the next forward pass.
+long_forecast = model.forecast(context, horizon=96)
+assert long_forecast.shape == (96, 9)
+
+# Independent channels can share one batch invocation.
+batch = model.forecast_batch(
+    np.stack([context, context * 0.5 + 2.0]), horizon=96
+)
+assert batch.shape == (2, 96, 9)
 ```
 
-`weights` accepts `"fp32"` or `"w8"`.  Inputs are `[T]`, `[1,T]`, or `[V,T]`;
-outputs are `[48,9]`, `[1,48,9]`, or `[V,48,9]`.  The model uses the latest
-2,048 observations, masks missing values, and forecasts channels independently.
+Pass `weights="fp32"` to use the bundled full-precision checkpoint. The first
+argument may also be a local checkpoint directory or a Hugging Face repository
+id such as `ztxtech/fracast-0`. Inputs are `[T]`, `[1,T]`, or `[V,T]`; outputs
+are `[H,Q]`, `[1,H,Q]`, or `[V,H,Q]`, where `H` defaults to the native 48
+steps and `Q=9`. The model uses the latest 2,048 observations, masks missing
+values, and forecasts channels independently.
 
 Run the release benchmark with:
 
