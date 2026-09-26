@@ -372,7 +372,8 @@ The official aggregate first divides each configuration by the matching
 Seasonal_Naive result and then takes the geometric mean across all 97
 configurations. The submission is labeled `pretrained` with
 `testdata_leakage: "Yes"` because the complete pretraining recipe contains
-dataset families from the GIFT-Eval test corpus.
+dataset families from the GIFT-Eval test corpus. The public leaderboard
+submission is [GIFT-Eval PR #215](https://github.com/SalesforceAIResearch/gift-eval/pull/215).
 
 Run the evaluator with Python 3.10 or newer:
 
