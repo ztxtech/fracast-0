@@ -1,4 +1,8 @@
-# Fracast
+# Fracast-0
+
+<div align="center">
+  <em>We built this solely to explore whether model compression can be pushed to an even more extreme state. We spent 15 days on this exploration. Although the work is not perfect, it is at least usable, so we are releasing it. Fracast-0 is the published version, and future versions will only get better.</em>
+</div>
 
 [![Repository](https://img.shields.io/badge/GitHub-fracast--0-181717?logo=github)](https://github.com/ztxtech/fracast-0)
 [![PyPI](https://img.shields.io/pypi/v/fracast?label=PyPI&color=3776AB)](https://pypi.org/project/fracast/)
@@ -8,7 +12,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.2%2B-EE4C2C?logo=pytorch)](https://pytorch.org/)
 
-Fracast is a compact time-series foundation model for zero-shot forecasting.
+Fracast-0 is a compact time-series foundation model for zero-shot forecasting.
 The released model has **85,001 parameters** and keeps a single
 full-resolution context stream.  Its core idea is simple: a causal
 dilated-convolution block is reused across a geometric ladder of time scales,
@@ -18,7 +22,7 @@ between parameter count and temporal context explicit.
 
 This repository is the self-contained pretraining release.  It contains:
 
-- the Fracast model and its reusable modules;
+- the Fracast-0 model and its reusable modules;
 - the public-data download and fast-corpus preparation flow;
 - the TinyCast synthetic-corpus build/conversion wrapper;
 - a CPU/MPS smoke recipe and the full CUDA pretraining recipe;
@@ -61,7 +65,7 @@ The default model is configured in `config/base.yaml`.
 The implementation is split by responsibility:
 
 - `model/fracast/model.py`: block ordering and model assembly;
-- `module/fracast/`: reusable Fracast blocks;
+- `module/fracast/`: reusable Fracast-0 blocks;
 - `module/periodic/`: period detection, phase encoding, seasonal fill;
 - `dataport/`: corpus readers and the training data port;
 - `pipeline/`: the two supported flows, `build_corpus` and `train`;
@@ -206,7 +210,7 @@ other parts.
 
 TinyCast publishes four synthetic shards.  The official builder is CUDA-only
 and requires the optional TinyCast package; the wrapper below keeps that
-requirement explicit and then converts the shards to the Fracast fast-corpus
+requirement explicit and then converts the shards to the Fracast-0 fast-corpus
 layout:
 
 ```bash
@@ -298,7 +302,7 @@ The supported kinds are exactly:
 | Kind | Meaning |
 | --- | --- |
 | `build_corpus` | raw Arrow/Parquet -> fast corpus |
-| `train` | pretrain Fracast and write checkpoints |
+| `train` | pretrain Fracast-0 and write checkpoints |
 
 No pipeline module defines its own CLI or `main()`.  Temporary configurations
 should be written under `tmp/` and passed to `main.py`.
@@ -382,7 +386,7 @@ python script/tests/test_fracast_release.py
 
 ## Third-party code
 
-Fracast includes small, explicitly documented portions adapted from TinyCast
+Fracast-0 includes small, explicitly documented portions adapted from TinyCast
 under the Apache-2.0 license.  The upstream commit, source paths, and local
 locations are recorded in `THIRD_PARTY_NOTICES.md`; the license text is in
 `LICENSES/TinyCast-Apache-2.0.txt`.
