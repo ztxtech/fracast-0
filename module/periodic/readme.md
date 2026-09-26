@@ -6,7 +6,7 @@ Period detection and phase-encoding components.
 
 - `official_periodogram.py`: normalized-periodogram period detector.
 - `official_encoding.py`: phase and bounded-recency encoding primitives.
-- `encoder.py`: multi-resolution integration used by FracCast.
+- `encoder.py`: multi-resolution integration used by Fracast.
 - `seasonal_fill.py`: seasonal fill utilities for forecast decoding.
 
 ## Organization

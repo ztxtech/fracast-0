@@ -2,7 +2,7 @@
 
 TinyCast reports a training mixture of 31% hourly, 30% sub-hourly, 15% daily,
 8% weekly, 7% monthly, and 6% second-level data. The original training code was
-not released, so this module implements that mixture for the FracCast corpus.
+not released, so this module implements that mixture for the Fracast corpus.
 
 The sampler is designed for a corpus stored as mmap-backed shards. Drawing rows
 uniformly from the complete corpus would touch hundreds of shards per batch. To

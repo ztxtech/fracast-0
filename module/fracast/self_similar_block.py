@@ -1,4 +1,4 @@
-"""Core FracCast block with one shared filter and optional scale conditioning.
+"""Core Fracast block with one shared filter and optional scale conditioning.
 
 The block holds a single set of parameters and receives the dilation as a forward
 argument. The same filter can therefore operate at every scale in the ladder.
@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from module.periodic.official_encoding import _norm_fp32
-from module.fraccast.quant import fake_quant_act_dynamic
+from module.fracast.quant import fake_quant_act_dynamic
 
 
 class SwiGLU(nn.Module):

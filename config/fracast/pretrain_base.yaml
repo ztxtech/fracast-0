@@ -1,4 +1,4 @@
-# Shared FracCast pretraining recipe.
+# Shared Fracast pretraining recipe.
 #
 # The model is a single full-resolution stream.  A shared dilated-convolution
 # block is reused across scales; the decoder receives seasonal future states.
@@ -6,10 +6,10 @@ inherit: ../base.yaml
 
 _run:
   kind: train
-  tag: fraccast
+  tag: fracast
 
 model:
-  family: fraccast
+  family: fracast
 
 pyramid:
   ratios: []

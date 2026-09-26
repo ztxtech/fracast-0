@@ -1,10 +1,10 @@
-"""Pretrain FracCast, run periodic validation, and write checkpoints.
+"""Pretrain Fracast, run periodic validation, and write checkpoints.
 
 This module has no command-line interface. Invoke it through the root
 ``main.py`` entry point with a configuration file, for example:
 
-    python main.py config/fraccast/pretrain_full.yaml
-    python main.py config/fraccast/pretrain_smoke.yaml
+    python main.py config/fracast/pretrain_full.yaml
+    python main.py config/fracast/pretrain_smoke.yaml
 
 All tunable values come from ``model``, ``pyramid``, ``heads``, ``repr``,
 ``data``, and ``train`` sections. Checkpoints store model state, optimizer
@@ -30,10 +30,10 @@ from module.losses.quantile import (pinball_loss,            # noqa: E402
 
 def _build_model(cfg: dict):
     """Build the single pretraining model family shipped in this repository."""
-    family = str((cfg.get("model") or {}).get("family", "fraccast"))
-    if family != "fraccast":
+    family = str((cfg.get("model") or {}).get("family", "fracast"))
+    if family != "fracast":
         raise ValueError(f"unsupported model.family: {family!r}")
-    from model.fraccast.model import build_from_cfg
+    from model.fracast.model import build_from_cfg
     return build_from_cfg(cfg)
 
 

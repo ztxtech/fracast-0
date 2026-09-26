@@ -1,4 +1,4 @@
-# FracCast
+# Fracast
 
 [![Repository](https://img.shields.io/badge/GitHub-fracast--0-181717?logo=github)](https://github.com/ztxtech/fracast-0)
 [![Model](https://img.shields.io/badge/Hugging%20Face-fracast--0-FFD21E?logo=huggingface)](https://huggingface.co/ztxtech/fracast-0)
@@ -7,7 +7,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.2%2B-EE4C2C?logo=pytorch)](https://pytorch.org/)
 
-FracCast is a compact time-series foundation model for zero-shot forecasting.
+Fracast is a compact time-series foundation model for zero-shot forecasting.
 The released model has **85,001 parameters** and keeps a single
 full-resolution context stream.  Its core idea is simple: a causal
 dilated-convolution block is reused across a geometric ladder of time scales,
@@ -17,14 +17,14 @@ between parameter count and temporal context explicit.
 
 This repository is the self-contained pretraining release.  It contains:
 
-- the FracCast model and its reusable modules;
+- the Fracast model and its reusable modules;
 - the public-data download and fast-corpus preparation flow;
 - the TinyCast synthetic-corpus build/conversion wrapper;
 - a CPU/MPS smoke recipe and the full CUDA pretraining recipe;
 - a single configuration-driven entry point, `main.py`.
 
-The repository intentionally does **not** contain downloaded datasets,
-checkpoints, evaluation products, or local runtime logs.  Those files are
+The repository includes the small release checkpoints under `weights/`.
+Downloaded datasets, training runs, evaluation products, and runtime logs are
 created under `data/`, `output/`, and `tmp/`, all of which are gitignored.
 
 ## Model
@@ -45,8 +45,8 @@ The default model is configured in `config/base.yaml`.
 
 The implementation is split by responsibility:
 
-- `model/fraccast/model.py`: block ordering and model assembly;
-- `module/fraccast/`: reusable FracCast blocks;
+- `model/fracast/model.py`: block ordering and model assembly;
+- `module/fracast/`: reusable Fracast blocks;
 - `module/periodic/`: period detection, phase encoding, seasonal fill;
 - `dataport/`: corpus readers and the training data port;
 - `pipeline/`: the two supported flows, `build_corpus` and `train`;
@@ -77,14 +77,38 @@ The training code chooses `CUDA > MPS > CPU` automatically.  CUDA is the
 intended pretraining device.  MPS and CPU are supported for the smoke recipe
 and for local development.  Mixed-precision autocast is enabled only on CUDA.
 
+## One-command reproduction
+
+After creating and activating the virtual environment, the complete public
+data path and the full recipe are:
+
+```bash
+./script/reproduce.sh prepare-data --workers 8
+./script/reproduce.sh train
+```
+
+The first command downloads the five pinned source datasets, converts and
+merges all five fast corpora, builds the four TinyCast synthetic shards, and
+runs the corpus audits.  It is resumable: completed corpus roots are skipped,
+while an incomplete generated root is rebuilt from its raw source.
+
+For a quick local check that downloads nothing:
+
+```bash
+./script/reproduce.sh run --profile smoke
+```
+
+Both commands use `PYTHON=python` by default.  Set `PYTHON=.venv/bin/python`
+if the interpreter is not already active.
+
 ## Quick smoke test
 
-This path downloads nothing and takes only a few minutes on a laptop:
+The underlying smoke commands are also directly runnable:
 
 ```bash
 python script/data/make_demo_corpus.py
 python main.py config/corpus/demo.yaml
-python main.py config/fraccast/pretrain_smoke.yaml
+python main.py config/fracast/pretrain_smoke.yaml
 ```
 
 The smoke recipe writes to `tmp/fracast-smoke/`.  It exercises the same
@@ -94,9 +118,9 @@ writer, and resume logic used by the full recipe.
 To test resume without changing the recipe:
 
 ```bash
-python main.py config/fraccast/pretrain_smoke.yaml \
+python main.py config/fracast/pretrain_smoke.yaml \
   -o train.total_steps=2 -o train.resume=false
-python main.py config/fraccast/pretrain_smoke.yaml \
+python main.py config/fracast/pretrain_smoke.yaml \
   -o train.total_steps=4 -o train.resume=auto
 ```
 
@@ -167,7 +191,7 @@ other parts.
 
 TinyCast publishes four synthetic shards.  The official builder is CUDA-only
 and requires the optional TinyCast package; the wrapper below keeps that
-requirement explicit and then converts the shards to the FracCast fast-corpus
+requirement explicit and then converts the shards to the Fracast fast-corpus
 layout:
 
 ```bash
@@ -185,10 +209,11 @@ official per-series scale sidecar used by the committing objective.
 
 ## Full pretraining
 
-After all six corpus roots exist, start the full recipe:
+After all six corpus roots exist, start the full recipe through the same
+reproduction entry point:
 
 ```bash
-python main.py config/fraccast/pretrain_full.yaml
+./script/reproduce.sh train
 ```
 
 The full recipe uses:
@@ -204,12 +229,13 @@ The full recipe uses:
 On a Mac, use the local recipe instead of the full CUDA recipe:
 
 ```bash
-python main.py config/fraccast/pretrain_local.yaml
+./script/reproduce.sh train --profile local
 ```
 
-It keeps the same data and effective batch size but uses a smaller micro-batch,
-no autocast, no compilation, and no fused optimizer.  It is intended for
-reproducibility and small local runs, not for a realistic wall-clock estimate.
+`config/fracast/pretrain_local.yaml` is the full-data CPU/MPS recipe for a
+machine that has already prepared all six corpus roots; it uses a smaller
+micro-batch and disables CUDA-only optimizations.  The smoke profile remains
+the fastest way to verify installation without downloading the corpora.
 
 ### Resume
 
@@ -224,19 +250,19 @@ train:
 Resume from the current output directory:
 
 ```bash
-python main.py config/fraccast/pretrain_full.yaml
+python main.py config/fracast/pretrain_full.yaml
 ```
 
 Start a fresh run explicitly:
 
 ```bash
-python main.py config/fraccast/pretrain_full.yaml -o train.resume=false
+python main.py config/fracast/pretrain_full.yaml -o train.resume=false
 ```
 
 Resume from a named checkpoint:
 
 ```bash
-python main.py config/fraccast/pretrain_full.yaml \
+python main.py config/fracast/pretrain_full.yaml \
   -o train.resume=output/fracast-0-full/last.pt
 ```
 
@@ -248,7 +274,7 @@ discovery, dry runs, overrides, and optional process-level parallelism:
 ```bash
 python main.py config/corpus --list
 python main.py config/corpus/demo.yaml --dry-run
-python main.py config/fraccast/pretrain_smoke.yaml \
+python main.py config/fracast/pretrain_smoke.yaml \
   -o train.total_steps=8 -o train.log_every=1
 ```
 
@@ -257,22 +283,57 @@ The supported kinds are exactly:
 | Kind | Meaning |
 | --- | --- |
 | `build_corpus` | raw Arrow/Parquet -> fast corpus |
-| `train` | pretrain FracCast and write checkpoints |
+| `train` | pretrain Fracast and write checkpoints |
 
 No pipeline module defines its own CLI or `main()`.  Temporary configurations
 should be written under `tmp/` and passed to `main.py`.
+
+## Python inference and benchmark
+
+The release weights can be loaded directly from this checkout or from the
+Hugging Face model repository:
+
+```python
+import numpy as np
+from fracast import FracastModel
+
+model = FracastModel.from_pretrained("weights", weights="w8", device="cpu")
+context = np.sin(np.arange(240, dtype=np.float32) / 7.0)
+forecast = model.forecast(context)
+assert forecast.shape == (48, 9)
+
+# Independent series can share one batch invocation.
+batch = model.forecast_batch(np.stack([context, context * 0.5 + 2.0]))
+assert batch.shape == (2, 48, 9)
+```
+
+`weights` accepts `"fp32"` or `"w8"`.  Inputs are `[T]`, `[1,T]`, or `[V,T]`;
+outputs are `[48,9]`, `[1,48,9]`, or `[V,48,9]`.  The model uses the latest
+2,048 observations, masks missing values, and forecasts channels independently.
+
+Run the release benchmark with:
+
+```bash
+./script/reproduce.sh benchmark
+# or, for a custom device and batch:
+python script/benchmark_inference.py --weights w8 --device cuda --batch 32
+```
+
+The JSON report is written under `output/benchmark/` and includes load time,
+parameter count, resident RSS, p50/p95 latency, and series throughput.
 
 ## Outputs
 
 | Directory | Contents |
 | --- | --- |
 | `data/` | downloaded data and generated fast corpora |
+| `weights/` | committed FP32 and W8 release checkpoints |
 | `output/` | full training runs and checkpoints |
 | `tmp/` | smoke runs, temporary configs, and diagnostics |
 
-All three directories are ignored by Git.  Checkpoints are PyTorch files and
-are not committed.  The repository itself remains code, configuration, and
-documentation only.
+All runtime directories are ignored by Git.  Only the small `weights/`
+safetensors release artifacts are committed; PyTorch training checkpoints and
+benchmark outputs are not.
 
 ## Reproducibility
 
@@ -283,20 +344,21 @@ documentation only.
 - The fast-corpus merge step checks manifest counts against actual offsets and
   lengths.
 - `script/tests/` contains CPU-only structural, causal, parameter-count, and
-  resume-alignment checks.
+  resume-alignment checks, plus public weight-loader coverage.
 
 Run the release checks with:
 
 ```bash
 python script/tests/test_freq.py
-python script/tests/test_fraccast_unit.py
+python script/tests/test_fracast_unit.py
 python script/tests/test_head_future_conv.py
 python script/tests/test_resume_stream.py
+python script/tests/test_fracast_release.py
 ```
 
 ## Third-party code
 
-FracCast includes small, explicitly documented portions adapted from TinyCast
+Fracast includes small, explicitly documented portions adapted from TinyCast
 under the Apache-2.0 license.  The upstream commit, source paths, and local
 locations are recorded in `THIRD_PARTY_NOTICES.md`; the license text is in
 `LICENSES/TinyCast-Apache-2.0.txt`.

@@ -1,4 +1,4 @@
-"""FracCast forecast head: context summary, horizon queries, and causal smoothing.
+"""Fracast forecast head: context summary, horizon queries, and causal smoothing.
 
 The head pools a full-resolution context stream, builds horizon queries, applies
 residual SwiGLU decoding, and optionally runs a causal dilated convolution along
@@ -11,10 +11,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from module.fraccast.self_similar_block import SwiGLU
-from module.fraccast.quant import fake_quant_act_dynamic
+from module.fracast.self_similar_block import SwiGLU
+from module.fracast.quant import fake_quant_act_dynamic
 from module.periodic.official_encoding import _norm_fp32, _recency_encoding
-from module.fraccast.future_conv import FutureConvStates
+from module.fracast.future_conv import FutureConvStates
 from module.periodic.seasonal_fill import (detect_periods,
                                            folded_seasonal_fill,
                                            last_period_fill)

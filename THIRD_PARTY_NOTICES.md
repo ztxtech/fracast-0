@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-FracCast contains code adapted from the following project.
+Fracast contains code adapted from the following project.
 
 ## TinyCast
 
@@ -17,9 +17,9 @@ revision and source path are recorded in each file header where applicable.
 | `module/periodic/official_encoding.py` | `tinycast/encoding.py` | copied implementation |
 | `module/periodic/official_periodogram.py` | `tinycast/periodogram.py` | copied implementation |
 | `module/losses/tinycast.py` | `tinycast/losses.py`, `tinycast/scale.py` | adapted objectives |
-| `module/fraccast/future_conv.py` | `tinycast/backbone.py` | adapted decoder state path |
+| `module/fracast/future_conv.py` | `tinycast/backbone.py` | adapted decoder state path |
 | `module/periodic/seasonal_fill.py` | `tinycast/backbone.py` | adapted seasonal fill |
 
-The FracCast model, training pipeline, data port, corpus tools, and
+The Fracast model, training pipeline, data port, corpus tools, and
 configuration files are original work in this repository unless a file header
 says otherwise.

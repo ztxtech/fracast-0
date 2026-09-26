@@ -4,3 +4,4 @@ pyarrow>=14
 PyYAML>=6
 tensorboard>=2.14
 huggingface_hub>=0.23
+safetensors>=0.4

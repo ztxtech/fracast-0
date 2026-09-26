@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""Configuration-driven entry point for FracCast pretraining.
+"""Configuration-driven entry point for Fracast pretraining.
 
 Examples:
     python main.py config/corpus/demo.yaml
-    python main.py config/fraccast/pretrain_smoke.yaml
+    python main.py config/fracast/pretrain_smoke.yaml
     python main.py config/corpus --list
-    python main.py config/fraccast/pretrain_full.yaml
+    python main.py config/fracast/pretrain_full.yaml
 
 Only two flows are supported:
 
 * ``build_corpus``: raw Arrow/Parquet files -> fast mmap corpus
-* ``train``: pretrain FracCast from a fast corpus
+* ``train``: pretrain Fracast from a fast corpus
 
 Pipeline-specific parameters are read from YAML. The CLI only controls
 discovery, dry runs, overrides, and optional process-level parallelism.
@@ -105,7 +105,7 @@ def run_all(variants: list[dict[str, Any]], workers: int) -> None:
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
         prog="main.py",
-        description="FracCast config-driven corpus and pretraining entry point.",
+        description="Fracast config-driven corpus and pretraining entry point.",
     )
     parser.add_argument("config", type=Path, help="YAML config file or directory")
     parser.add_argument("--list", action="store_true", help="list expanded runs")

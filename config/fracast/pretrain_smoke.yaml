@@ -7,7 +7,7 @@ inherit: pretrain_base.yaml
 
 _run:
   kind: train
-  tag: fraccast-smoke
+  tag: fracast-smoke
 
 model:
   d_model: 32

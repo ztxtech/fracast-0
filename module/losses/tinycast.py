@@ -1,4 +1,4 @@
-"""TinyCast training objectives used by the FracCast pretraining recipe.
+"""TinyCast training objectives used by the Fracast pretraining recipe.
 
 The two functions below are adapted from the Apache-2.0 TinyCast reference
 implementation:

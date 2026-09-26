@@ -5,7 +5,7 @@ Configuration is split by flow family:
 | Directory | Purpose |
 | --- | --- |
 | `corpus/` | raw-data to fast-corpus conversion |
-| `fraccast/` | model pretraining recipes |
+| `fracast/` | model pretraining recipes |
 
 `base.yaml` contains shared defaults.  Child files inherit it with a relative
 `inherit:` path and only list the keys they change.

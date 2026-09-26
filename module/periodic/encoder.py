@@ -7,7 +7,7 @@ The algorithm is adapted from the Apache-2.0 TinyCast implementation:
 - ``tinycast/encoding.py::_phase_encoding`` is copied verbatim to
   ``official_encoding.py``.
 
-FracCast extends those primitives in three ways:
+Fracast extends those primitives in three ways:
 
 1. Period detection runs independently for each pyramid level. Positions are
    expressed in that level's stride so periods remain local to the level.

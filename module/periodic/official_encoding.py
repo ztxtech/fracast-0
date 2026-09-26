@@ -3,7 +3,7 @@
 # Source: raws-labs/tinycast (Apache-2.0), arXiv:2608.15767
 # Upstream path: tinycast/encoding.py
 #
-# Keep this file byte-for-byte aligned with the upstream algorithm. FracCast-specific
+# Keep this file byte-for-byte aligned with the upstream algorithm. Fracast-specific
 # integration lives in module/periodic/encoder.py. Any change here should be treated as
 # a deliberate divergence and documented in the release notes.
 #

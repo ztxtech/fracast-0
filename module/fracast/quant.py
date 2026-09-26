@@ -1,9 +1,9 @@
-"""Post-training INT8 fake quantization for FracCast.
+"""Post-training INT8 fake quantization for Fracast.
 
 Weights use symmetric per-output-channel quantization. ``w8`` quantizes weights
 only; ``w8a8`` also enables per-tensor dynamic activation quantization. RMSNorm,
 periodogram features, normalization statistics, and biases remain floating point.
-FracCast implements depthwise convolution with ``F.conv1d`` and a ``dw_weight``
+Fracast implements depthwise convolution with ``F.conv1d`` and a ``dw_weight``
 parameter, so those weights are handled explicitly alongside Linear and Conv1d.
 """
 from __future__ import annotations
@@ -44,7 +44,7 @@ def _conv_post_hook(_module, _inputs, output):
 
 
 def quantize_int8_(model: nn.Module, mode: str = "w8") -> nn.Module:
-    """Apply FracCast INT8 fake quantization in place."""
+    """Apply Fracast INT8 fake quantization in place."""
     mode = mode.strip().lower()
     if mode not in {"w8", "w8a8"}:
         raise ValueError(f"unknown INT8 mode {mode!r}; expected w8 or w8a8")

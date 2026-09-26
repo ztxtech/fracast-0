@@ -10,7 +10,7 @@ format implementations in `dataport/`.
 | Kind | Entry | Responsibility |
 | --- | --- | --- |
 | `build_corpus` | `build_corpus.py` | raw Arrow/Parquet -> fast mmap corpus |
-| `train` | `train.py` | FracCast pretraining, validation, checkpoints, resume |
+| `train` | `train.py` | Fracast pretraining, validation, checkpoints, resume |
 
 `pipeline/pipeline.py` is the dispatcher.  It reads `_run.kind` and calls
 exactly one `run(config)` function.

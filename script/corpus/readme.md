@@ -13,6 +13,8 @@ Tools for converting, merging, and auditing fast corpora.
 Typical workflow:
 
 ```bash
+./script/reproduce.sh prepare-data
+# or run the conversion stages explicitly:
 python main.py config/corpus/pretrain_full.yaml --workers 32
 python script/corpus/merge_corpus_parts.py --corpus data/corpus_fast/pret
 python script/corpus/audit_corpus_parts.py --corpus pret=data/pretrain_full:32

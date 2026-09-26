@@ -1,4 +1,4 @@
-# Full public-corpus FracCast pretraining recipe.
+# Full public-corpus Fracast pretraining recipe.
 #
 # The six corpus roots are the public sources documented in README.md.  Run
 # the corpus preparation flow for each source before starting this config.
@@ -6,7 +6,7 @@ inherit: pretrain_base.yaml
 
 _run:
   kind: train
-  tag: fraccast-full
+  tag: fracast-full
 
 data:
   corpus_dirs:

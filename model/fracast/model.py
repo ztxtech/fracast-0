@@ -1,7 +1,7 @@
-"""FracCast encoder with one shared filter across a geometric scale ladder.
+"""Fracast encoder with one shared filter across a geometric scale ladder.
 
 This file defines block ordering only.  Numerical operations live in
-``module/fraccast``.  A single full-resolution stream is projected, processed
+``module/fracast``.  A single full-resolution stream is projected, processed
 at dilations 1, 2, 4, ..., optionally conditioned on the continuous scale
 coordinate, and normalized.
 """
@@ -10,13 +10,13 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 
-from module.fraccast.gather_head import GatherQuantileHead
-from module.fraccast.self_similar_block import ScaleCondition, SelfSimilarBlock
+from module.fracast.gather_head import GatherQuantileHead
+from module.fracast.self_similar_block import ScaleCondition, SelfSimilarBlock
 from module.periodic.encoder import PeriodicPhaseEncoder
 from module.periodic.official_encoding import N_RECENCY_CHANNELS, _recency_encoding
 
 
-class FraccastCore(nn.Module):
+class FracastCore(nn.Module):
     """Encode a full-resolution context stream into ``[B, L, D]``."""
 
     def __init__(self, cfg: dict):
@@ -35,7 +35,7 @@ class FraccastCore(nn.Module):
         self.level_widths = [int(w) for w in (m.get("level_widths") or [self.W])]
         if ratios:
             raise ValueError(
-                "FracCast requires a single full-resolution context; "
+                "Fracast requires a single full-resolution context; "
                 f"pyramid.ratios must be empty, got {ratios}"
             )
         if len(self.level_widths) != 1:
@@ -82,7 +82,7 @@ class FraccastCore(nn.Module):
         del kw
         if values.dim() != 3 or values.shape[1] != 1:
             raise ValueError(
-                f"FracCast expects a single level [B,1,W], got {tuple(values.shape)}"
+                f"Fracast expects a single level [B,1,W], got {tuple(values.shape)}"
             )
         if values.shape[2] != self.W:
             raise ValueError(
@@ -114,7 +114,7 @@ class Model(nn.Module):
         super().__init__()
         self.configs = configs
         cfg = getattr(configs, "cfg", None) or {"model": {}, "pyramid": {}}
-        self.core = FraccastCore(cfg)
+        self.core = FracastCore(cfg)
         self.head = build_head(cfg)
 
     def forward(self, values, mask, cov, **kw):
@@ -129,7 +129,7 @@ def build_head(cfg: dict) -> nn.Module:
             (cfg.get("pyramid") or {}).get("ratios") or []):
         raise ValueError(
             "model.head_future_conv requires a single full-resolution context "
-            "(FracCast with empty pyramid.ratios); flattened pyramid tokens are "
+            "(Fracast with empty pyramid.ratios); flattened pyramid tokens are "
             "not a time series"
         )
     kind = str(m.get("head_kind", "gather"))

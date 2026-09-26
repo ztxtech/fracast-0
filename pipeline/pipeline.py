@@ -8,7 +8,7 @@ Pipeline flows:
 
 - ``build_corpus``: convert raw Arrow or Parquet data into the fast corpus
   format used by training.
-- ``train``: pretrain FracCast.
+- ``train``: pretrain Fracast.
 
 Model definitions belong in ``model/``, reusable components in ``module/``, data
 access and conversion in ``dataport/``, and operational tooling in ``script/``.

@@ -147,7 +147,7 @@ def config_summary(cfg: dict) -> str:
 
 
 def estimate_params(m: dict) -> float:
-    # Kept only for compatibility with older notebooks. FracCast's exact count is
+    # Kept only for compatibility with older notebooks. Fracast's exact count is
     # reported by the model builder at runtime.
     d = int(m.get("d_model", 0))
     stages = int(m.get("n_stages", 0))

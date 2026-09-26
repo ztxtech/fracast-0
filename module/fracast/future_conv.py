@@ -13,7 +13,7 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 
-from module.fraccast.self_similar_block import SelfSimilarBlock
+from module.fracast.self_similar_block import SelfSimilarBlock
 from module.periodic.official_encoding import N_RECENCY_CHANNELS
 
 

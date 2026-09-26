@@ -1,11 +1,11 @@
-# FracCast pretraining defaults.
+# Fracast pretraining defaults.
 #
 # Every value that affects model shape, optimization, or data sampling lives
 # here or in a child YAML file.  Model code reads values from the config object
 # and does not hard-code training hyperparameters.
 
 model:
-  family: fraccast
+  family: fracast
   d_model: 64
   W: 2048
   level_widths: [2048]

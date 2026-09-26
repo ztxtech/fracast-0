@@ -1,10 +1,10 @@
-"""CPU unit tests for FracCast structure and numerical behavior.
+"""CPU unit tests for Fracast structure and numerical behavior.
 
 The central claim is that one set of block weights serves every scale. The
 tests check parameter sharing, shapes, causality, conditioning initialization,
 gradients, parameter counts, and context extension before GPU training.
 
-Run with: env -u PYTHONPATH .venv/bin/python script/tests/test_fraccast_unit.py
+Run with: env -u PYTHONPATH .venv/bin/python script/tests/test_fracast_unit.py
 """
 
 from __future__ import annotations
@@ -18,10 +18,10 @@ import torch
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from model.fraccast.model import build_from_cfg            # noqa: E402
+from model.fracast.model import build_from_cfg            # noqa: E402
 from util.config import load_config, strip_meta            # noqa: E402
 
-CFG_PATH = ROOT / "config" / "fraccast" / "pretrain_base.yaml"
+CFG_PATH = ROOT / "config" / "fracast" / "pretrain_base.yaml"
 B, W, H, Q = 2, 2048, 48, 9
 fails: list[str] = []
 

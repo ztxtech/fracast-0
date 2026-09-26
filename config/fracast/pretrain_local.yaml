@@ -6,7 +6,7 @@ inherit: pretrain_full.yaml
 
 _run:
   kind: train
-  tag: fraccast-local
+  tag: fracast-local
 
 data:
   num_workers: 4

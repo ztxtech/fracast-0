@@ -22,15 +22,15 @@ import torch
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from model.fraccast.model import build_from_cfg                    # noqa: E402
-from module.fraccast.future_conv import FutureConvStates           # noqa: E402
-from module.fraccast.gather_head import GatherQuantileHead         # noqa: E402
+from model.fracast.model import build_from_cfg                    # noqa: E402
+from module.fracast.future_conv import FutureConvStates           # noqa: E402
+from module.fracast.gather_head import GatherQuantileHead         # noqa: E402
 from module.periodic.seasonal_fill import (detect_periods,         # noqa: E402
                                            folded_seasonal_fill,   # noqa: E402
                                            last_period_fill)       # noqa: E402
 from util.config import load_config, strip_meta                    # noqa: E402
 
-CFG_PATH = ROOT / "config" / "fraccast" / "pretrain_base.yaml"
+CFG_PATH = ROOT / "config" / "fracast" / "pretrain_base.yaml"
 B, W, H, Q = 2, 2048, 48, 9
 fails: list[str] = []
 
