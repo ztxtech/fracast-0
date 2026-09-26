@@ -1,0 +1,4 @@
+gluonts
+numpy
+torch>=2.2
+huggingface-hub

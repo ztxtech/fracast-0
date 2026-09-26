@@ -1,0 +1,30 @@
+leaderboard_rank,model,MASE_norm,CRPS_norm,parameter_count,parameter_kind,parameter_evidence,pareto_parameter_mase,pareto_parameter_crps
+1,TimesFM-3,0.639768,0.536336,330710976,exact,HF safetensors element count,True,True
+2,Toto-2.0-2.5B,0.641859,0.539396,2454281888,exact,HF safetensors element count,False,False
+3,Toto-2.0-313m,0.644375,0.5423,312684656,exact,HF safetensors element count,True,True
+4,Toto-2.0-1B,0.644764,0.544589,1041033096,exact,HF safetensors element count,False,False
+5,PatchTST-FM-Extended,0.661833,0.556756,257895552,rounded,Public R1 same-architecture safetensors: 20 layers and d=1024 as in the paper,True,False
+6,Chronos-2,0.662004,0.556326,119477664,exact,HF safetensors element count,True,True
+7,t0_beta,0.664678,0.555094,255614293,exact,HF safetensors element count,False,True
+8,OmniScient,0.668502,0.562168,119477664,lower_bound,Chronos-2 base parameters; an additional r=8 LoRA can only increase it,False,False
+9,TimesFM-2.5,0.668601,0.567352,231289280,exact,HF safetensors element count,False,False
+10,Toto-2.0-22m,0.670321,0.561593,21915596,exact,HF safetensors element count,True,True
+11,PatchTST-FM-R1,0.670998,0.56371,257895552,exact,HF safetensors element count,False,False
+12,Tabby,0.677003,0.56436,146695591,exact,paris-noah/Tabby safetensors element count,False,False
+13,TiRex,0.683122,0.573097,35000000,rounded,Official model card reports 35M,False,False
+14,Toto-2.0-4m,0.691002,0.58249,4144456,exact,HF safetensors element count,True,True
+15,TS-ICL,0.694112,0.580538,34724011,exact,Public checkpoint forecaster state_dict shape count,False,False
+16,Toto,0.697967,0.583899,151306080,exact,HF safetensors element count,False,False
+17,Eidos,0.699606,0.587298,113352192,exact,Checkpoint cfg points to TimeMoE-50M; public same-architecture safetensors element count,False,False
+18,Timer-S1,0.702118,0.588627,8303654176,exact,HF safetensors element count,False,False
+19,Moirai2,0.702996,0.588487,11387208,exact,HF safetensors element count,False,False
+20,TimesFM-2.0,0.717685,0.619612,498828960,exact,HF safetensors element count,False,False
+21,Chronos-bolt,0.73284,0.619983,205292928,exact,HF safetensors element count,False,False
+22,Kairos,0.739473,0.644025,23000965,exact,HF safetensors element count,False,False
+23,sundial_base,0.75755,0.663378,128329680,exact,HF safetensors element count,False,False
+24,Fracast-0,0.767965,0.649192,85001,exact,Release safetensors element count,True,True
+25,litespecformer,0.786922,0.653413,36670304,exact,HF safetensors element count,False,False
+26,TimesFM-1.0,0.78831,0.688728,200000000,rounded,TIME paper Table 1 reports 200M,False,False
+27,visiontspp_base,0.805063,0.671224,460000000,rounded,TIME paper Table 1 reports 460M,False,False
+28,Moirai_base,0.825591,0.666196,91357728,exact,HF safetensors element count,False,False
+29,seasonal_naive,1.0,1.0,0,exact,Parameter-free statistical baseline,True,True

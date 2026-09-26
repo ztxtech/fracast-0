@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "benchmark": {
+    "name": "TIME",
+    "paper": "https://arxiv.org/abs/2602.12147",
+    "leaderboard": "https://huggingface.co/spaces/Real-TSF/TIME-leaderboard",
+    "repository": "https://github.com/zqiao11/TIME",
+    "repository_commit": "3ca5c41d71c76f3c70632c0121142d325350ee32",
+    "output_repository": "https://huggingface.co/datasets/Real-TSF/TIME-Output"
+  },
+  "model": {
+    "name": "Fracast-0",
+    "model_id": "ztxtech/fracast-0",
+    "parameter_count": 85001,
+    "weights": "fp32",
+    "weights_sha256": "0d678f123f3d1f91c5065cca2b5d40eccc469360afc2381b27290486011ded2c"
+  },
+  "evaluation": {
+    "device": "Apple MPS",
+    "batch_size": 512,
+    "tasks_completed": 98,
+    "tasks_total": 98,
+    "task_failures": 0,
+    "release_horizon_steps": 48,
+    "rollout_tasks": 47,
+    "rollout_feedback": "median_quantile",
+    "weights_precision": "fp32",
+    "normalization": "seasonal-naive by (dataset_id, horizon), geometric mean",
+    "run_locally_only": true
+  },
+  "results": {
+    "overall_rank": 24,
+    "overall_models": 29,
+    "overall": {
+      "MASE_norm": 0.767965,
+      "CRPS_norm": 0.649192
+    },
+    "horizons": {
+      "short": {
+        "MASE_norm": 0.701284,
+        "CRPS_norm": 0.586018
+      },
+      "medium": {
+        "MASE_norm": 0.855065,
+        "CRPS_norm": 0.736344
+      },
+      "long": {
+        "MASE_norm": 0.833422,
+        "CRPS_norm": 0.708427
+      }
+    },
+    "pareto_parameter_mase": true,
+    "pareto_parameter_crps": true,
+    "mase_dominators": [],
+    "crps_dominators": []
+  },
+  "submission": {
+    "method": "Hugging Face dataset pull request",
+    "pull_request": "https://huggingface.co/datasets/Real-TSF/TIME-Output/discussions/42",
+    "head_commit": "c04be85a3108f901d5a656f3ee7ec5f50baf1f77",
+    "state": "open",
+    "file_count": 296,
+    "official_review_completed": false,
+    "official_recompute_completed": false
+  },
+  "artifacts": {
+    "README.md": "f6764615cc9f7b2747e1f2acfcf0728cfc669c19b310dffd041e09297778e779",
+    "requirements.txt": "c8a5a592287417967ab062d1565ffd40dca1e6f90595dce988fceee584843ded",
+    "analyze_pareto.py": "dfc1c666707223acfe4014d10536123d01a5a316dd0a1e1b010e22866f4948dc",
+    "run_fracast.py": "19f4125acf1a00c3046f41631f8b687235661eb708bdaeb484f28c3338e1cc05",
+    "validate_submission.py": "0fce7df16f6a16c3c4003a3122d8f0e5d56fb336dd8d56ebe5b952c0b409caf8",
+    "submission/Fracast-0/README.md": "d92ae386aeda2d1126090edb0713f7a3a4f1f164ddc3bf15d4cd0e216602edf8",
+    "analysis/Fracast-0_TIME_tasks.csv": "1b493d95de44df4bda87f82e0dbb7707a7fbf8b1ca7c57f762769367b5fea31e",
+    "analysis/TIME_horizon_leaderboard.csv": "13faabfcb15acbc53a3d548efa9ab35c5a3338bfaedee10a814d0fc85970b1ff",
+    "analysis/TIME_overall_leaderboard.csv": "778fd266be0639b042ae9d6ebe9019479f60d6dcee79f1b68ada8a3e72d809ee",
+    "analysis/TIME_pareto.csv": "8c33c9f3fc0bc592103653d40f10fdd79600eb83b7b563cdff049660b875b44e",
+    "analysis/TIME_pareto_summary.json": "7c88a83b0a31ecb9c8dcb9abef46b85b9aaf775d3f5f17367ebbe268de6e293b"
+  },
+  "excluded_from_public_archive": [
+    "98 raw result directories because they are preserved in the official TIME-Output pull request",
+    "raw progress log",
+    "local TIME dataset and Hugging Face caches",
+    "downloaded benchmark repository clones"
+  ],
+  "disclosures": [
+    "47 of 98 tasks use the released 48-step head with median-quantile rollout.",
+    "The official pull request is open and has not completed benchmark review or recomputation.",
+    "OmniScient parameter count is a conservative Chronos-2 base lower bound.",
+    "PatchTST-FM-Extended uses the public R1 count from the same default architecture."
+  ]
+}

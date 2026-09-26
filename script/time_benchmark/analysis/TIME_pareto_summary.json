@@ -1,0 +1,79 @@
+{
+  "scope": {
+    "models": 29,
+    "dominance_definition": "x dominates y if and only if x.parameter_count <= y.parameter_count and x.metric < y.metric; lower is better for both axes",
+    "parameter_count_semantics": "exact is a tensor/state_dict element count; lower_bound is a conservative public lower bound; rounded is a paper or model-card value"
+  },
+  "fracast": {
+    "parameter_count": 85001,
+    "MASE_norm": 0.767965,
+    "CRPS_norm": 0.649192,
+    "leaderboard_rank": 24,
+    "pareto_parameter_mase": true,
+    "pareto_parameter_crps": true,
+    "mase_dominators": [],
+    "crps_dominators": []
+  },
+  "tightest_better_performing_candidates": {
+    "MASE": {
+      "leaderboard_rank": 14,
+      "model": "Toto-2.0-4m",
+      "MASE_norm": 0.691002,
+      "CRPS_norm": 0.58249,
+      "parameter_count": 4144456,
+      "parameter_kind": "exact",
+      "parameter_evidence": "HF safetensors element count",
+      "pareto_parameter_mase": true,
+      "pareto_parameter_crps": true
+    },
+    "CRPS": {
+      "leaderboard_rank": 14,
+      "model": "Toto-2.0-4m",
+      "MASE_norm": 0.691002,
+      "CRPS_norm": 0.58249,
+      "parameter_count": 4144456,
+      "parameter_kind": "exact",
+      "parameter_evidence": "HF safetensors element count",
+      "pareto_parameter_mase": true,
+      "pareto_parameter_crps": true
+    }
+  },
+  "fronts": {
+    "parameter_mase": [
+      "seasonal_naive",
+      "Fracast-0",
+      "Toto-2.0-4m",
+      "Toto-2.0-22m",
+      "Chronos-2",
+      "PatchTST-FM-Extended",
+      "Toto-2.0-313m",
+      "TimesFM-3"
+    ],
+    "parameter_crps": [
+      "seasonal_naive",
+      "Fracast-0",
+      "Toto-2.0-4m",
+      "Toto-2.0-22m",
+      "Chronos-2",
+      "t0_beta",
+      "Toto-2.0-313m",
+      "TimesFM-3"
+    ]
+  },
+  "sources": {
+    "fracast_release": "https://huggingface.co/ztxtech/fracast-0",
+    "patchtst_fm_paper": "https://arxiv.org/abs/2602.06909",
+    "patchtst_fm_r1": "https://huggingface.co/ibm-research/patchtst-fm-r1",
+    "tabby": "https://huggingface.co/paris-noah/Tabby",
+    "timemoe_50m": "https://huggingface.co/Maple728/TimeMoE-50M",
+    "ts_icl": "https://huggingface.co/taharnbl/TS-ICL",
+    "timer_s1": "https://huggingface.co/thuml/Timer-S1",
+    "parameter_audit": "See parameter_evidence in TIME_pareto.csv"
+  },
+  "limitations": [
+    "TIME normalized scores come from a local 98/98 evaluation and have not yet been reviewed and recomputed by the benchmark.",
+    "47 of 98 tasks use the 48-step release head with median-quantile rollout, not a strict official protocol claim.",
+    "OmniScient uses the conservative Chronos-2 base lower bound and does not dominate Fracast-0.",
+    "PatchTST-FM-Extended uses the public R1 parameter count from the same 20-layer, d=1024 architecture; no independent safetensors file was published."
+  ]
+}
