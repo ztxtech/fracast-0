@@ -78,8 +78,13 @@ def main() -> int:
     )
     assert manifest["evaluation"]["tasks_completed"] == 98
     assert manifest["evaluation"]["rollout_tasks"] == 47
-    assert manifest["submission"]["state"] == "open"
-    assert manifest["submission"]["official_review_completed"] is False
+    assert manifest["submission"]["state"] == "merged"
+    assert manifest["submission"]["merged_at"] == "2026-09-26T12:15:26.000Z"
+    assert manifest["submission"]["merge_commit"] == (
+        "65119f562f340544ee2fe54194a60b3043a514fb"
+    )
+    assert manifest["submission"]["official_review_completed"] is True
+    assert manifest["submission"]["official_recompute_completed"] is False
     assert manifest["disclosures"][0] == (
         "47 of 98 tasks use the released 48-step head with median-quantile rollout."
     )

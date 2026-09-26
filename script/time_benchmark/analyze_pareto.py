@@ -216,8 +216,8 @@ def main() -> None:
         },
         "sources": SOURCES,
         "limitations": [
-            "TIME normalized scores come from a local 98/98 evaluation and "
-            "have not yet been reviewed and recomputed by the benchmark.",
+            "The official raw submission is merged; no separate official "
+            "recomputation is recorded for the local 98/98 compact scores.",
             "47 of 98 tasks use the 48-step release head with "
             "median-quantile rollout, not a strict official protocol claim.",
             "OmniScient uses the conservative Chronos-2 base lower bound and "

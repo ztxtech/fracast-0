@@ -5,11 +5,12 @@ This directory archives the reproducible analysis used for the Fracast-0
 submission. Evaluation ran locally on Apple MPS with batch size 512. Publication
 of this directory does not start a remote evaluation or test.
 
-The official result submission is the Hugging Face dataset pull request
+The official raw result submission is the Hugging Face dataset pull request
 [`Real-TSF/TIME-Output#42`](https://huggingface.co/datasets/Real-TSF/TIME-Output/discussions/42),
 not a GitHub pull request. Its head is
-`c04be85a3108f901d5a656f3ee7ec5f50baf1f77` and it remains open. The raw
-98-task output is kept there because each task contains `config.json`,
+`c04be85a3108f901d5a656f3ee7ec5f50baf1f77`, and it was merged into `main` at
+[`65119f5`](https://huggingface.co/datasets/Real-TSF/TIME-Output/commit/65119f562f340544ee2fe54194a60b3043a514fb).
+The raw 98-task output is kept there because each task contains `config.json`,
 `metrics.npz`, and `predictions.npz`; this archive stores the compact public
 analysis instead of duplicating those files.
 
@@ -28,8 +29,8 @@ The normalized scores aggregate seasonal-naive baselines over
 The evaluation completed 98 of 98 tasks. Of those, 47 use the released
 48-step forecast head with median-quantile feedback for horizons longer than
 48. Those rollouts are disclosed in every task configuration and are not a
-strict official-protocol claim. The score may be recomputed after benchmark
-review.
+strict official-protocol claim. Review is complete, but no separate official
+recomputation is recorded for this compact table.
 
 ## Parameter Pareto analysis
 

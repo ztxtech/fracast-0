@@ -58,15 +58,17 @@
     "method": "Hugging Face dataset pull request",
     "pull_request": "https://huggingface.co/datasets/Real-TSF/TIME-Output/discussions/42",
     "head_commit": "c04be85a3108f901d5a656f3ee7ec5f50baf1f77",
-    "state": "open",
+    "state": "merged",
+    "merged_at": "2026-09-26T12:15:26.000Z",
+    "merge_commit": "65119f562f340544ee2fe54194a60b3043a514fb",
     "file_count": 296,
-    "official_review_completed": false,
+    "official_review_completed": true,
     "official_recompute_completed": false
   },
   "artifacts": {
-    "README.md": "f6764615cc9f7b2747e1f2acfcf0728cfc669c19b310dffd041e09297778e779",
+    "README.md": "e86247931ef64e34b46d94e1760d07bd477bee6fade188d90880bdeb62379886",
     "requirements.txt": "c8a5a592287417967ab062d1565ffd40dca1e6f90595dce988fceee584843ded",
-    "analyze_pareto.py": "dfc1c666707223acfe4014d10536123d01a5a316dd0a1e1b010e22866f4948dc",
+    "analyze_pareto.py": "9c2aae55440edfc75ceb3b16f3a9fa4beef5af3e0bee62a36b5486cdf45aa2e3",
     "run_fracast.py": "19f4125acf1a00c3046f41631f8b687235661eb708bdaeb484f28c3338e1cc05",
     "validate_submission.py": "0fce7df16f6a16c3c4003a3122d8f0e5d56fb336dd8d56ebe5b952c0b409caf8",
     "submission/Fracast-0/README.md": "d92ae386aeda2d1126090edb0713f7a3a4f1f164ddc3bf15d4cd0e216602edf8",
@@ -74,17 +76,17 @@
     "analysis/TIME_horizon_leaderboard.csv": "13faabfcb15acbc53a3d548efa9ab35c5a3338bfaedee10a814d0fc85970b1ff",
     "analysis/TIME_overall_leaderboard.csv": "778fd266be0639b042ae9d6ebe9019479f60d6dcee79f1b68ada8a3e72d809ee",
     "analysis/TIME_pareto.csv": "8c33c9f3fc0bc592103653d40f10fdd79600eb83b7b563cdff049660b875b44e",
-    "analysis/TIME_pareto_summary.json": "7c88a83b0a31ecb9c8dcb9abef46b85b9aaf775d3f5f17367ebbe268de6e293b"
+    "analysis/TIME_pareto_summary.json": "44ba218c32a89b26ccfb1df642465de858554c3a13ff33a3b5ad055169244d64"
   },
   "excluded_from_public_archive": [
-    "98 raw result directories because they are preserved in the official TIME-Output pull request",
+    "98 raw result directories because they are preserved in the merged official TIME-Output main archive",
     "raw progress log",
     "local TIME dataset and Hugging Face caches",
     "downloaded benchmark repository clones"
   ],
   "disclosures": [
     "47 of 98 tasks use the released 48-step head with median-quantile rollout.",
-    "The official pull request is open and has not completed benchmark review or recomputation.",
+    "The official raw submission is merged; no separate official recomputation is recorded for the compact scores.",
     "OmniScient parameter count is a conservative Chronos-2 base lower bound.",
     "PatchTST-FM-Extended uses the public R1 count from the same default architecture."
   ]

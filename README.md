@@ -402,10 +402,13 @@ python script/gift_eval/evaluate.py \
 
 ## TIME Benchmark
 
-The complete local 98-task TIME submission is archived under
+The complete 98-task TIME submission is archived under
 `script/time_benchmark/`. It includes the official runner, validation, pinned
 analysis script, parameter-Pareto tables, submission disclosure, and a run
-manifest. The run used Apple MPS, batch size 512, and the FP32 release
+manifest. The raw outputs were
+[merged into `TIME-Output`](https://huggingface.co/datasets/Real-TSF/TIME-Output/discussions/42)
+main at [`65119f5`](https://huggingface.co/datasets/Real-TSF/TIME-Output/commit/65119f562f340544ee2fe54194a60b3043a514fb).
+The archived run used Apple MPS, batch size 512, and the FP32 release
 checkpoint; all 98 tasks completed.
 
 | Scope | Normalized MASE | Normalized CRPS | MASE rank | CRPS rank |
@@ -421,7 +424,8 @@ median-quantile feedback beyond 48 steps; this is disclosed in every raw task
 configuration and is not presented as a strict official-protocol result. The
 raw 98-task output is in
 [TIME-Output discussion #42](https://huggingface.co/datasets/Real-TSF/TIME-Output/discussions/42),
-which remains open and has not completed benchmark review or recomputation.
+which is merged. Review is complete; no separate official recomputation is
+recorded for the compact scores in this archive.
 
 ## FEV-Bench
 
