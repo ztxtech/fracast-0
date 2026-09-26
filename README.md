@@ -328,14 +328,14 @@ assert forecast.shape == (48, 9)
 
 # The native head predicts 48 steps. Longer horizons append median blocks and
 # re-normalize each 2,048-point context before the next forward pass.
-long_forecast = model.forecast(context, horizon=96)
-assert long_forecast.shape == (96, 9)
+long_forecast = model.forecast(context, horizon=144)
+assert long_forecast.shape == (144, 9)
 
 # Independent channels can share one batch invocation.
 batch = model.forecast_batch(
-    np.stack([context, context * 0.5 + 2.0]), horizon=96
+    np.stack([context, context * 0.5 + 2.0]), horizon=144
 )
-assert batch.shape == (2, 96, 9)
+assert batch.shape == (2, 144, 9)
 ```
 
 Pass `weights="fp32"` to use the bundled full-precision checkpoint. The first

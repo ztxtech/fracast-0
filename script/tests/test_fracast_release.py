@@ -11,6 +11,8 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+MAX_TEST_HORIZON = 144
+
 
 def main() -> int:
     from fracast import FracastModel
@@ -48,10 +50,10 @@ def main() -> int:
     assert multivariate.shape == (2, 48, 9)
     assert np.allclose(multivariate[0], single, rtol=1e-5, atol=1e-5)
 
-    long_single = w8.forecast(context, horizon=96)
-    long_batch = w8.forecast_batch(channels, horizon=96)
-    assert long_single.shape == (96, 9)
-    assert long_batch.shape == (2, 96, 9)
+    long_single = w8.forecast(context, horizon=MAX_TEST_HORIZON)
+    long_batch = w8.forecast_batch(channels, horizon=MAX_TEST_HORIZON)
+    assert long_single.shape == (MAX_TEST_HORIZON, 9)
+    assert long_batch.shape == (2, MAX_TEST_HORIZON, 9)
     assert np.allclose(long_single[:48], single, rtol=1e-5, atol=1e-5)
     assert np.isfinite(long_single).all() and np.isfinite(long_batch).all()
     try:
