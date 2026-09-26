@@ -75,8 +75,8 @@
         <a href="#architecture">Architecture</a>
         <a href="#results">Results</a>
         <a href="#forecasts">Forecasts</a>
-        <a href="#references">References</a>
         <a href="#citation">Citation</a>
+        <a href="#references">References</a>
         <a href="#support">Support</a>
       </nav>
       <div class="nav-actions">
@@ -293,7 +293,27 @@
             <h3>Current limits</h3>
             <p>The released model is channel independent, natively predicts 48 steps per block, and needs rollout for longer horizons. The W8 export dequantizes weights and is not an integer-only kernel.</p>
           </article>
+          <article class="web-demo-card">
+            <h3>Just try the web demo</h3>
+            <p>Run Fracast-0 in your browser with preset traffic data. No installation or GPU required.</p>
+            <a class="button is-dark" href="https://huggingface.co/spaces/ztxtech/fracast-0-demo" target="_blank" rel="noopener">Open the web demo</a>
+          </article>
         </div>
+      </div>
+    </section>
+
+    <section class="section is-light" id="citation">
+      <div class="container is-max-desktop">
+        <h2 class="title is-3 section-title">Citation</h2>
+        <div class="code-card">
+          <pre id="bibtex-code"><code>@software{ztxtech_fracast_0,
+  author = {Zhan, Tianxiang and Zhang, Huanyao and He, Yuanpeng},
+  title = {Fracast-0: Fractal Weight Sharing for a Time Series Foundation Model with Only 85K Parameters},
+  year = {2026},
+  url = {https://github.com/ztxtech/fracast-0}
+}</code></pre>
+        </div>
+        <button class="copy-bibtex-btn" type="button" onclick="copyBibTeX()"><span class="copy-text">Copy</span></button>
       </div>
     </section>
 
@@ -328,21 +348,6 @@
             </ul>
           </article>
         </div>
-      </div>
-    </section>
-
-    <section class="section is-light" id="citation">
-      <div class="container is-max-desktop">
-        <h2 class="title is-3 section-title">Citation</h2>
-        <div class="code-card">
-          <pre id="bibtex-code"><code>@software{ztxtech_fracast_0,
-  author = {Zhan, Tianxiang and Zhang, Huanyao and He, Yuanpeng},
-  title = {Fracast-0: Fractal Weight Sharing for a Time Series Foundation Model with Only 85K Parameters},
-  year = {2026},
-  url = {https://github.com/ztxtech/fracast-0}
-}</code></pre>
-        </div>
-        <button class="copy-bibtex-btn" type="button" onclick="copyBibTeX()"><span class="copy-text">Copy</span></button>
       </div>
     </section>
 
