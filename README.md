@@ -1,5 +1,6 @@
 # Fracast-0
 
+[![Project page](https://img.shields.io/badge/Project-GitHub_Pages-7C3AED?logo=github)](https://ztxtech.github.io/fracast-0/)
 [![Repository](https://img.shields.io/badge/GitHub-fracast--0-181717?logo=github)](https://github.com/ztxtech/fracast-0)
 [![PyPI](https://img.shields.io/pypi/v/fracast?label=PyPI&color=3776AB)](https://pypi.org/project/fracast/)
 [![Model](https://img.shields.io/badge/Hugging%20Face-fracast--0-FFD21E?logo=huggingface)](https://huggingface.co/ztxtech/fracast-0)
@@ -10,6 +11,9 @@
 
 ---
 
+Fracast-0 is an **85K-parameter pretrained Time Series Foundation Model**, small
+enough to load directly in a web page.
+
 <div align="center">
   <em>&ldquo;We built this solely to explore whether model compression can be pushed to an even more extreme state. We spent 15 days on this exploration. Although the work is not perfect, it is at least usable, so we are releasing it. Fracast-0 is the published version, and future versions will only get better.&rdquo;</em>
   <br /><br />
@@ -18,7 +22,8 @@
 
 ---
 
-Fracast-0 is a compact time-series foundation model for zero-shot forecasting.
+Fracast-0 is a compact time-series foundation model for forecasting without
+per-dataset fine-tuning.
 The released model has **85,001 parameters** and keeps a single
 full-resolution context stream.  Its core idea is simple: a causal
 dilated-convolution block is reused across a geometric ladder of time scales,
@@ -415,6 +420,40 @@ python script/tests/test_head_future_conv.py
 python script/tests/test_resume_stream.py
 python script/tests/test_fracast_release.py
 ```
+
+## Acknowledgements
+
+Fracast-0 depends on the teams behind the benchmark, compact baseline, and
+public pretraining corpora:
+
+- [GIFT-Eval](https://github.com/SalesforceAIResearch/gift-eval) provides the
+  97-configuration evaluation protocol used for the public result.
+- [TinyCast](https://github.com/raws-labs/tinycast) provides the compact
+  design baseline and the Apache-2.0 components recorded in
+  `THIRD_PARTY_NOTICES.md`.
+- [Salesforce/GiftEvalPretrain](https://huggingface.co/datasets/Salesforce/GiftEvalPretrain),
+  [Salesforce/lotsa_data](https://huggingface.co/datasets/Salesforce/lotsa_data),
+  [autogluon/chronos_datasets](https://huggingface.co/datasets/autogluon/chronos_datasets),
+  [Datadog/BOOM](https://huggingface.co/datasets/Datadog/BOOM), and
+  [autogluon/fev_datasets](https://huggingface.co/datasets/autogluon/fev_datasets)
+  provide the public training data.
+- The TinyCast team also publishes the synthetic pretraining shards used by the
+  recipe.
+
+## Development support
+
+The implementation, debugging, and release work used paid API access to
+**Xiaomi MiMo 2.6 Pro** and **DeepSeek V4.1 Flash**. Both were effective for
+this project and are recommended.
+
+## Support the project
+
+There are no sponsors yet. Continued maintenance still needs API credits and
+server resources. Feedback and support are welcome through:
+
+- [GitHub Sponsors](https://github.com/sponsors/ztxtech)
+- [Afdian](https://afdian.com/)
+- [zhantianxianguestc@hotmail.com](mailto:zhantianxianguestc@hotmail.com)
 
 ## Third-party code
 
