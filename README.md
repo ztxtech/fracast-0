@@ -446,7 +446,7 @@ The implementation, debugging, and release work used paid API access to
 **Xiaomi MiMo 2.6 Pro** and **DeepSeek V4.1 Flash**. Both were effective for
 this project and are recommended.
 
-## Support the project
+## Supporters / sponsors
 
 There are no sponsors yet. Continued maintenance still needs API credits and
 server resources. Feedback and support are welcome through:
