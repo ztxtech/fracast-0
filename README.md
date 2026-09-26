@@ -387,6 +387,38 @@ python -m pip install -r requirements-gift-eval.txt
 python script/gift_eval/evaluate.py --data-root /path/to/gift_eval_raw
 ```
 
+## FEV-Bench
+
+The complete local 100-task FEV-Bench submission is archived under
+`script/fev_bench/`. It includes the official adapter, raw result CSV, nine
+ranking tables, a pinned analysis script, and a reproduction entry. The run
+used Apple MPS, batch size 512, FP32, and the `w8` checkpoint; all 100 tasks
+completed without a task failure.
+
+| Metric | Raw rank | Controlled rank |
+| --- | ---: | ---: |
+| SQL | 17 / 30 | 16 / 30 |
+| MASE | 20 / 30 | 16 / 30 |
+| WQL | 17 / 30 | 16 / 30 |
+| WAPE | 20 / 30 | 17 / 30 |
+
+The raw SQL win rate is 44.44% with a 35.72% skill score. Fracast-0 was
+pretrained on every `autogluon/fev_datasets` configuration used by this
+benchmark, so the official leakage-controlled aggregate replaces its errors
+with Chronos-Bolt. It must not be presented as an independent zero-shot
+result. The complete disclosure is in
+[FEV-Bench PR #189](https://github.com/autogluon/fev/pull/189).
+
+572 of 235,039 sequence windows (0.243%) had fewer than eight finite
+observations after official task slicing. The wrapper repeats the most recent
+finite value for those windows and records each affected task. Reproduce from
+the archive documentation with:
+
+```bash
+./script/fev_bench/reproduce.sh tmp/fev output/fev_bench
+python script/fev_bench/analyze.py --fev-repo tmp/fev --out-dir output/fev_analysis
+```
+
 ## Outputs
 
 | Directory | Contents |
@@ -419,6 +451,7 @@ python script/tests/test_fracast_unit.py
 python script/tests/test_head_future_conv.py
 python script/tests/test_resume_stream.py
 python script/tests/test_fracast_release.py
+python script/tests/test_fev_bench_artifacts.py
 ```
 
 ## Acknowledgements
@@ -428,6 +461,8 @@ public pretraining corpora:
 
 - [GIFT-Eval](https://github.com/SalesforceAIResearch/gift-eval) provides the
   97-configuration evaluation protocol used for the public result.
+- [FEV-Bench](https://github.com/autogluon/fev) provides the 100-dataset
+  evaluation protocol and leaderboard submission format.
 - [TinyCast](https://github.com/raws-labs/tinycast) provides the compact
   design baseline and the Apache-2.0 components recorded in
   `THIRD_PARTY_NOTICES.md`.

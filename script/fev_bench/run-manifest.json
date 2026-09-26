@@ -1,0 +1,81 @@
+{
+  "artifacts": {
+    "README.md": "33c74088d3564b00ad083f4ff66015b2bfe914788f42aa34f9b7493e68d63e3a",
+    "analysis/fracast_ranks.csv": "272a3270e4074f50ac40aea7fdc4d28664bed83bf99aa8e807964e2f4b9c9487",
+    "analysis/leaderboard_controlled_MASE.csv": "ff97f8df46514a1f7e069c9fc85e2b760777c4bb556c43c6beb87c92ac5c3e26",
+    "analysis/leaderboard_controlled_SQL.csv": "95c9cafb795fd2d2c5dad8df59cdad3811ecd361259cda90e38bc9d72938c6d1",
+    "analysis/leaderboard_controlled_WAPE.csv": "a4f374dbc13eafbf6057bf4ac48edce8458d28150ebc281f488c4e623f55f4a7",
+    "analysis/leaderboard_controlled_WQL.csv": "af3e7b233d1634573b3c9b4e45613973f97bc132658c105f1b516ce90dbede87",
+    "analysis/leaderboard_raw_MASE.csv": "53de7bf611bf945c17a0d26ea227ee09daa8c316b55d55bc8edc48d9f1190e8e",
+    "analysis/leaderboard_raw_SQL.csv": "3a81e2854d854bbd6a2f7da6f55979dc8ca47393a98c90adc38d8db18290c4b3",
+    "analysis/leaderboard_raw_WAPE.csv": "510a84e281d1dde8b6ecb0f4e11f114943335ba171909f38e98cb16138209c47",
+    "analysis/leaderboard_raw_WQL.csv": "7146c70ba7d3ed7790379573a20c6422f4374e510b8753c11cdf95a3687d152a",
+    "analyze.py": "34f44a90caad04768048ff413db25161c7e23e82f32ba037b9756e40b2de6201",
+    "models/fracast-0/model.py": "47e41fff92720311af42778cbf66e1cbf970133f53d339ba7cf04efdec02885e",
+    "models/fracast-0/requirements.txt": "70ba8306eb3714cc9c86c6e249ff9268a3fe5ebce7e4148312fc27614518ca45",
+    "reproduce.sh": "c9b02934c0b902fcd5faded1bde20194e42490b7e94a053089b53e3b94063019",
+    "requirements.txt": "b666e1cc2ec04c3916da96f28269f6842001a8df53a5451b668e856c7fefd457",
+    "results/fracast-0.csv": "9dda82627d03966a279b4118a140d3b293c495c508c1037e05b536326e193ab2"
+  },
+  "benchmark": "fev-bench",
+  "disclosure": {
+    "controlled_aggregate_equals_chronos_bolt": true,
+    "independent_zero_shot_claim": false,
+    "leakage_imputation_model": "Chronos-Bolt",
+    "training_corpus_overlap_pct": 100.0
+  },
+  "evaluation": {
+    "batch_size": 512,
+    "date": "2026-09-26",
+    "device": "mps",
+    "dtype": "float32",
+    "duration_seconds": 3387,
+    "execution": "local-only",
+    "fallback_policy": "repeat-most-recent-finite-value",
+    "fallback_windows": 572,
+    "fallback_windows_pct": 0.243365,
+    "sequence_windows_total": 235039,
+    "task_failures": 0,
+    "tasks_completed": 100,
+    "tasks_total": 100,
+    "weights_variant": "w8"
+  },
+  "excluded_from_public_archive": [
+    "raw progress log",
+    "dataset and Hugging Face caches",
+    "partial smoke outputs"
+  ],
+  "official_commit": "81cf1255bb0c88dc039ae9bca23f73db6d9dfa61",
+  "official_repository": "autogluon/fev",
+  "results": {
+    "controlled_ranks": {
+      "MASE": 16,
+      "SQL": 16,
+      "WAPE": 17,
+      "WQL": 16
+    },
+    "raw_ranks": {
+      "MASE": 20,
+      "SQL": 17,
+      "WAPE": 20,
+      "WQL": 17
+    },
+    "raw_sql_skill_score_pct": 35.72395657395755,
+    "raw_sql_win_rate_pct": 44.4375,
+    "rows": 100,
+    "sha256": "9dda82627d03966a279b4118a140d3b293c495c508c1037e05b536326e193ab2"
+  },
+  "schema_version": 1,
+  "submission": {
+    "head_commit": "8407c157bc144b42765c903843ea95cfb2439c1f",
+    "pull_request": "https://github.com/autogluon/fev/pull/189",
+    "state": "open"
+  },
+  "weights": {
+    "config_sha256": "1d7d2cf831f51ae2c5c9bf4cb4d8d4a49ec0085d6d55010814a1aae2a777a5dc",
+    "fp32_sha256": "0d678f123f3d1f91c5065cca2b5d40eccc469360afc2381b27290486011ded2c",
+    "int8_sha256": "77beb5e5f17cf77525c4c1813fdaacfba586ac0b9d6f67a7ad4355de25b05544",
+    "model_id": "ztxtech/fracast-0",
+    "repository_and_huggingface_match": true
+  }
+}

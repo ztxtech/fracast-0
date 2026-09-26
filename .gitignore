@@ -13,6 +13,8 @@ data/
 output/
 tmp/
 results/
+!script/fev_bench/results/
+!script/fev_bench/results/**
 
 *.pt
 *.pth

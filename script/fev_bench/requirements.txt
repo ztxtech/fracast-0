@@ -1,0 +1,3 @@
+fev @ git+https://github.com/autogluon/fev.git@81cf1255bb0c88dc039ae9bca23f73db6d9dfa61
+pandas
+pyyaml
