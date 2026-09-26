@@ -452,7 +452,6 @@ There are no sponsors yet. Continued maintenance still needs API credits and
 server resources. Feedback and support are welcome through:
 
 - [GitHub Sponsors](https://github.com/sponsors/ztxtech)
-- [Afdian](https://afdian.com/)
 - [zhantianxianguestc@hotmail.com](mailto:zhantianxianguestc@hotmail.com)
 
 ## Third-party code
