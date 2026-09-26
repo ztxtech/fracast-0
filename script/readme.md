@@ -6,6 +6,7 @@ Repository tools are grouped by purpose:
 | --- | --- |
 | `data/` | download public data, create demo data, build TinyCast synthetic shards |
 | `corpus/` | convert, merge, and audit fast corpus parts |
+| `gift_eval/` | run the official 97-configuration leaderboard submission |
 | `benchmark_inference.py` | measure release load time, latency, RSS, and throughput |
 | `reproduce.sh` | one-command data preparation, smoke, full training, and tests |
 | `tests/` | CPU-only structural and resume checks |

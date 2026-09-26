@@ -356,6 +356,31 @@ python script/benchmark_inference.py --weights w8 --device cuda --batch 32
 The JSON report is written under `output/benchmark/` and includes load time,
 parameter count, resident RSS, p50/p95 latency, and series throughput.
 
+## GIFT-Eval
+
+The official 97-configuration evaluator is available under
+`script/gift_eval/`. The FP32 release checkpoint produces:
+
+| Protocol split | Normalized MASE | Normalized MWQL |
+| --- | ---: | ---: |
+| Short (55) | 0.769573 | 0.568038 |
+| Medium (21) | 0.842959 | 0.557024 |
+| Long (21) | 0.875558 | 0.555953 |
+| **Overall (97)** | **0.807133** | **0.563008** |
+
+The official aggregate first divides each configuration by the matching
+Seasonal_Naive result and then takes the geometric mean across all 97
+configurations. The submission is labeled `pretrained` with
+`testdata_leakage: "Yes"` because the complete pretraining recipe contains
+dataset families from the GIFT-Eval test corpus.
+
+Run the evaluator with Python 3.10 or newer:
+
+```bash
+python -m pip install -r requirements-gift-eval.txt
+python script/gift_eval/evaluate.py --data-root /path/to/gift_eval_raw
+```
+
 ## Outputs
 
 | Directory | Contents |

@@ -1,0 +1,8 @@
+# Optional dependencies for the official 97-configuration evaluation.
+# Python 3.10 or newer is required by Salesforce GIFT-Eval.
+gluonts~=0.15.1
+datasets~=2.17.1
+python-dotenv==1.0.0
+toolz>=0.12
+pandas>=2.0
+salesforce-gift-eval @ git+https://github.com/SalesforceAIResearch/gift-eval.git@4d5ab3fa0fe7451bbf59bb1ff6dd76e6e414d64a
