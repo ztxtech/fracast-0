@@ -364,7 +364,7 @@ parameter count, resident RSS, p50/p95 latency, and series throughput.
 ## GIFT-Eval Benchmark
 
 The official 97-configuration evaluator is available under
-`script/gift_eval/`. The archived submission and official aggregate are also
+`script/gift_eval/`. The archived result and official aggregate are also
 tracked there. The FP32 release checkpoint produces:
 
 | Protocol split | Normalized MASE | Normalized MWQL |
@@ -376,11 +376,12 @@ tracked there. The FP32 release checkpoint produces:
 
 The official aggregate first divides each configuration by the matching
 Seasonal_Naive result and then takes the geometric mean across all 97
-configurations. The submission is labeled `pretrained` with
+configurations. The result is labeled `pretrained` with
 `testdata_leakage: "Yes"` because the complete pretraining recipe contains
-dataset families from the GIFT-Eval test corpus. The public leaderboard
-submission is [GIFT-Eval PR #215](https://github.com/SalesforceAIResearch/gift-eval/pull/215).
-It is still open; its two required files are archived under
+dataset families from the GIFT-Eval test corpus. The official results are
+public in the
+[GIFT-Eval `results/Fracast-0` directory](https://github.com/SalesforceAIResearch/gift-eval/tree/main/results/Fracast-0).
+The same two official files are archived under
 `script/gift_eval/results/Fracast-0/`, and the split/overall summary is in
 `script/gift_eval/analysis/protocol_summary.csv`.
 

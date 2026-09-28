@@ -45,10 +45,10 @@
     }
   },
   "submission": {
-    "method": "GitHub pull request",
-    "pull_request": "https://github.com/SalesforceAIResearch/gift-eval/pull/215",
-    "head_commit": "b8d6cb110fe0acd3c1ed97cc2b994120b8763dc0",
-    "state": "open",
+    "location": "https://github.com/SalesforceAIResearch/gift-eval/tree/main/results/Fracast-0",
+    "state": "merged",
+    "merged_at": "2026-09-28T07:34:49Z",
+    "merge_commit": "82a8c1f9212c47c83fd95a7783f666ab0bc82f93",
     "checks_passed": true,
     "file_count": 2
   },

@@ -1,27 +1,27 @@
 # GIFT-Eval Benchmark archive
 
 `evaluate.py` runs the official 97-configuration protocol and produces the two
-files required by a GIFT-Eval leaderboard pull request:
+files used by the official GIFT-Eval result archive:
 
 ```text
 script/gift_eval/results/Fracast-0/all_results.csv
 script/gift_eval/results/Fracast-0/config.json
 ```
 
-The archived submission is the FP32 release result submitted to
-[GIFT-Eval PR #215](https://github.com/SalesforceAIResearch/gift-eval/pull/215);
-the pull request remains open with all automated checks passing.
-`analysis/protocol_summary.csv` stores its official short, medium, long, and
-overall aggregates. The evaluator's default `results/Fracast-0` directory remains
-gitignored so a reproduction cannot overwrite the archived submission.
+The archived result is the FP32 release result published in the
+[official `results/Fracast-0` directory](https://github.com/SalesforceAIResearch/gift-eval/tree/main/results/Fracast-0)
+with all automated checks passing. `analysis/protocol_summary.csv` stores its
+official short, medium, long, and overall aggregates. The evaluator's default
+`results/Fracast-0` directory remains gitignored so a reproduction cannot
+overwrite the archived result.
 
 The evaluator uses the official `gift_eval.data.Dataset`, GluonTS
 `evaluate_model`, and the standard 15-column result schema. Multivariate
 datasets are expanded channel-wise, matching the official univariate
-evaluation path. The submission is labeled `pretrained` because the released
+evaluation path. The result is labeled `pretrained` because the released
 checkpoint is applied as-is to every configuration.
 
-The submission is labeled `testdata_leakage: "Yes"` under GIFT-Eval's
+The result is labeled `testdata_leakage: "Yes"` under GIFT-Eval's
 dataset-level rule. The LOtsa, Chronos, and FEV roots in the training recipe
 contain datasets from the GIFT-Eval test corpus. `GiftEvalPretrain` itself is
 published as a non-leaking pretraining set, but the complete recipe cannot be
