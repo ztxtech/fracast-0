@@ -23,6 +23,14 @@ def test_boomlet_config_expansion():
     assert tuple(item.term for item in configs) == ("short", "medium", "long") * 32
 
 
+def test_full_boom_config_expansion():
+    properties = runner.load_properties(ROOT / "script" / "boom_bench" / "boom_properties.json")
+    configs = list(runner.iter_configs(properties, "boom"))
+    short_only = sum(properties[name]["term"] == "short" for name in properties)
+    multi_term = len(properties) - short_only
+    assert len(configs) == short_only + multi_term * 3
+
+
 def test_short_term_properties_have_one_config():
     properties = runner.load_properties(ROOT / "script" / "boom_bench" / "boomlet_properties.json")
     assert all(properties[name]["term"] == "long" for name in properties)

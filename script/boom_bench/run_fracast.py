@@ -50,9 +50,7 @@ def load_properties(path: Path) -> dict[str, dict]:
 
 
 def iter_configs(properties: dict[str, dict], benchmark: str) -> Iterator[EvalConfig]:
-    names = sorted(properties) if benchmark == "boomlet" else sorted(
-        name for name in properties if properties[name]["term"] == "long"
-    )
+    names = sorted(properties)
     for name in names:
         for term in TERMS:
             if term != "short" and properties[name]["term"] == "short":
@@ -171,7 +169,10 @@ def write_manifest(path: Path, payload: dict) -> None:
 
 def run(args: argparse.Namespace) -> int:
     root = Path(__file__).resolve().parents[2]
-    properties_path = root / "script" / "boom_bench" / "boomlet_properties.json"
+    properties_file = (
+        "boomlet_properties.json" if args.benchmark == "boomlet" else "boom_properties.json"
+    )
+    properties_path = root / "script" / "boom_bench" / properties_file
     properties = load_properties(properties_path)
     configs = list(iter_configs(properties, args.benchmark))
     if args.only:
