@@ -461,6 +461,32 @@ the archive documentation with:
 python script/fev_bench/analyze.py --fev-repo tmp/fev --out-dir output/fev_analysis
 ```
 
+## Scenario Highlights
+
+These slices use per-configuration or per-task error ratios against Seasonal
+Naive. Lower is better, and TIME ranks use the official 29-model table.
+
+- **GIFT-Eval, Sales:** All four short-horizon Sales configurations improve on
+  Seasonal Naive in normalized MASE and normalized MWQL. The geometric means
+  are 0.693 and 0.422, and Fracast-0 leads TinyCast on both metrics in every
+  configuration.
+- **GIFT-Eval, Cloud operations:** Across the three hourly `bizitobs_l2c`
+  short, medium, and long slices, normalized MASE is 0.430 and normalized MWQL
+  is 0.353.
+- **TIME, Solar forecasting:** `Australia_Solar/H` ranks 4th to 6th of 29 by
+  MASE and 7th to 13th by CRPS over short, medium, and long horizons.
+- **TIME, Manufacturing:** On `Smart_Manufacturing/H`, medium and long
+  horizons rank 8th of 29 by MASE, while CRPS ranks range from 8th to 10th
+  across all three horizons.
+- **FEV-Bench, Multivariate event series:** Each of the 15 BoomLet tasks
+  improves on Seasonal Naive across SQL, MASE, WQL, and WAPE. Their
+  geometric-mean SQL and WQL ratios are 0.403 and 0.419.
+- **FEV-Bench, Weather uncertainty:** Three Jena weather tasks reduce WQL to
+  0.261 of Seasonal Naive and improve every reported metric.
+
+These are scenario slices, not separate aggregate rankings. The benchmark
+disclosures above still apply.
+
 ## Outputs
 
 | Directory | Contents |

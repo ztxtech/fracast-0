@@ -240,6 +240,20 @@
         </div>
         <p class="benchmark-note">GIFT-Eval and TIME results are published in their official repositories. FEV-Bench is under official review; its displayed values are reproduced from the archived local protocol run.</p>
 
+        <div class="scenario-highlights">
+          <h3>Scenario highlights</h3>
+          <p class="scenario-method">Error ratios compare each configuration or task with Seasonal Naive. Lower is better, and TIME ranks use the official 29-model table.</p>
+          <ul>
+            <li><strong>GIFT-Eval, Sales:</strong> All four short-horizon Sales configurations improve on Seasonal Naive in normalized MASE and normalized MWQL. The geometric means are 0.693 and 0.422, and Fracast-0 leads TinyCast on both metrics in every configuration.</li>
+            <li><strong>GIFT-Eval, Cloud operations:</strong> Across the three hourly <code>bizitobs_l2c</code> short, medium, and long slices, normalized MASE is 0.430 and normalized MWQL is 0.353.</li>
+            <li><strong>TIME, Solar forecasting:</strong> <code>Australia_Solar/H</code> ranks 4th to 6th of 29 by MASE and 7th to 13th by CRPS over short, medium, and long horizons.</li>
+            <li><strong>TIME, Manufacturing:</strong> On <code>Smart_Manufacturing/H</code>, medium and long horizons rank 8th of 29 by MASE, while CRPS ranks range from 8th to 10th across all three horizons.</li>
+            <li><strong>FEV-Bench, Multivariate event series:</strong> Each of the 15 BoomLet tasks improves on Seasonal Naive across SQL, MASE, WQL, and WAPE. Their geometric-mean SQL and WQL ratios are 0.403 and 0.419.</li>
+            <li><strong>FEV-Bench, Weather uncertainty:</strong> Three Jena weather tasks reduce WQL to 0.261 of Seasonal Naive and improve every reported metric.</li>
+          </ul>
+          <p class="scenario-note">These are scenario slices, not separate aggregate rankings. The benchmark disclosures above still apply.</p>
+        </div>
+
         <div class="figure-grid">
           <figure class="figure-card">
             <img src="static/images/scaling-mase.png" alt="Scatter plot of normalized MASE against parameter count" loading="lazy">

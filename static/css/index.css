@@ -1331,6 +1331,49 @@ body {
   line-height: 1.7;
 }
 
+.scenario-highlights {
+  max-width: 980px;
+  margin: 0 auto 36px;
+  text-align: left;
+}
+
+.scenario-highlights h3 {
+  margin-bottom: 10px;
+  color: var(--text-primary);
+  font-size: 1.15rem;
+  font-weight: 750;
+}
+
+.scenario-method,
+.scenario-note {
+  color: var(--text-secondary);
+  font-size: 0.93rem;
+  line-height: 1.65;
+}
+
+.scenario-highlights ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 28px;
+  margin: 18px 0;
+  padding-left: 22px;
+}
+
+.scenario-highlights li {
+  padding-left: 4px;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.scenario-highlights strong {
+  color: var(--text-primary);
+}
+
+.scenario-note {
+  margin-bottom: 0;
+}
+
 .reference-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1489,7 +1532,8 @@ body {
   .figure-grid,
   .forecast-grid,
   .boundary-grid,
-  .metric-grid {
+  .metric-grid,
+  .scenario-highlights ul {
     grid-template-columns: 1fr;
   }
 
