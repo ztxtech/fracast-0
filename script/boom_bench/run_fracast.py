@@ -264,8 +264,11 @@ def run(args: argparse.Namespace) -> int:
     failures: list[str] = []
     started = time.monotonic()
     for index, config in enumerate(pending, start=1):
+        official_name = (
+            f"{config.dataset}/{properties[config.dataset]['frequency']}/{config.term}"
+        )
         print(
-            f"[boom] {index}/{len(pending)} {config.name} "
+            f"[boom] {index}/{len(pending)} {official_name} "
             f"elapsed={time.monotonic() - started:.1f}s",
             flush=True,
         )
@@ -302,7 +305,7 @@ def run(args: argparse.Namespace) -> int:
             append_result(
                 output_csv,
                 [
-                    config.name,
+                    official_name,
                     args.model_name,
                     *(_metric_value(result, column) for column in METRIC_COLUMNS),
                     json.dumps(properties[config.dataset]["domain"]),

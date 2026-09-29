@@ -23,6 +23,13 @@ def test_boomlet_config_expansion():
     assert tuple(item.term for item in configs) == ("short", "medium", "long") * 32
 
 
+def test_official_dataset_name_uses_property_frequency():
+    properties = runner.load_properties(ROOT / "script" / "boom_bench" / "boomlet_properties.json")
+    dataset, fields = next(iter(properties.items()))
+    official_name = f"{dataset}/{fields['frequency']}/short"
+    assert official_name.split("/")[1] == fields["frequency"]
+
+
 def test_full_boom_config_expansion():
     properties = runner.load_properties(ROOT / "script" / "boom_bench" / "boom_properties.json")
     configs = list(runner.iter_configs(properties, "boom"))
