@@ -467,6 +467,23 @@ the archive documentation with:
 python script/fev_bench/analyze.py --fev-repo tmp/fev --out-dir output/fev_analysis
 ```
 
+## BOOM Benchmark
+
+The complete official BOOM protocol contains 7,413 dataset-term configurations
+and 623,602 forecasts. Fracast-0 completed every configuration with the FP32
+checkpoint and no task failures. In the official 24-model comparison, it
+obtains scaled MASE `0.723`, scaled CRPS `0.434`, and mean per-dataset rank
+`11.808`; the corresponding ordinal positions are `12 / 24` by MASE and
+`11 / 24` by CRPS.
+
+The pinned dataset revision, evaluator revision, hashes, and per-configuration
+results are archived under `script/boom_bench/`. The combined comparator table
+is in
+[`script/boom_bench/leaderboards/BOOM_leaderboard_with_fracast.csv`](script/boom_bench/leaderboards/BOOM_leaderboard_with_fracast.csv).
+
+`Datadog/BOOM` is also part of the complete Fracast-0 pretraining recipe, so
+this result is in-corpus and must not be presented as zero-shot.
+
 ## Scenario Highlights
 
 These slices use per-configuration or per-task error ratios against Seasonal

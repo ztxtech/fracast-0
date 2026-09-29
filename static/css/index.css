@@ -1322,6 +1322,12 @@ body {
   border-color: #bbf7d0;
 }
 
+.status-incorpus {
+  color: #92400e;
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
 .benchmark-note {
   max-width: 930px;
   margin: 0 auto 32px;
