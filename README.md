@@ -190,6 +190,12 @@ data/boom/
 data/fev/
 ```
 
+BOOM is both a pretraining corpus and an independent evaluation benchmark. To
+run the official BOOMLET subset after pretraining, see
+[`script/boom_bench/readme.md`](script/boom_bench/readme.md). The runner uses
+the official rolling protocol, supports resumable full-BOOM evaluation, and
+writes the same `all_results.csv` schema used by Datadog's leaderboard code.
+
 ### Convert raw data to fast corpus
 
 Each source is converted independently.  The conversion produces contiguous

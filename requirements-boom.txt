@@ -1,0 +1,8 @@
+# Official BOOM evaluation loader. Python 3.10 or newer is required.
+gluonts~=0.15.1
+datasets~=2.17.1
+python-dotenv==1.0.0
+toolz>=0.12
+numpy~=1.26.0
+pandas>=2.0
+salesforce-gift-eval @ git+https://github.com/SalesforceAIResearch/gift-eval.git@1527c41589189ad1bc3883ed4d3d97b3e5a3b47c
