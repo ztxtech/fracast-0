@@ -1,6 +1,7 @@
 # Fracast-0
 
 [![Project page](https://img.shields.io/badge/Project-GitHub_Pages-7C3AED?logo=github)](https://ztxtech.github.io/fracast-0/)
+[![arXiv](https://img.shields.io/badge/arXiv-2609.32209-b31b1b?logo=arxiv)](https://arxiv.org/abs/2609.32209)
 [![Repository](https://img.shields.io/badge/GitHub-fracast--0-181717?logo=github)](https://github.com/ztxtech/fracast-0)
 [![PyPI](https://img.shields.io/pypi/v/fracast?label=PyPI&color=3776AB)](https://pypi.org/project/fracast/)
 [![Model](https://img.shields.io/badge/Hugging%20Face-fracast--0-FFD21E?logo=huggingface)](https://huggingface.co/ztxtech/fracast-0)
@@ -496,6 +497,22 @@ python script/tests/test_fracast_release.py
 python script/tests/test_gift_eval_artifacts.py
 python script/tests/test_fev_bench_artifacts.py
 python script/tests/test_time_benchmark_artifacts.py
+```
+
+## Citation
+
+```bibtex
+@article{zhan2026fracast0fractalweightsharing,
+  title={Fracast-0: Fractal Weight Sharing for a Time Series Foundation Model with Only 85K Parameters},
+  author={Tianxiang Zhan and Huanyao Zhang and Yuanpeng He},
+  year={2026},
+  journal={arXiv preprint arXiv:2609.32209},
+  eprint={2609.32209},
+  archivePrefix={arXiv},
+  primaryClass={cs.AI},
+  doi={10.48550/arXiv.2609.32209},
+  url={https://arxiv.org/abs/2609.32209}
+}
 ```
 
 ## Acknowledgements

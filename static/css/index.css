@@ -943,6 +943,12 @@ body {
   font-weight: 600;
 }
 
+.publication-status a {
+  color: var(--primary-hover);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .quote-section {
   padding-top: 4.5rem;
   padding-bottom: 4.5rem;

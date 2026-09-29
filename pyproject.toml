@@ -11,7 +11,7 @@ requires-python = ">=3.9"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [{name = "Fracast contributors"}]
-keywords = ["time-series", "forecasting", "foundation-model", "probabilistic-forecasting"]
+keywords = ["time-series", "forecasting", "foundation-model", "probabilistic-forecasting", "arxiv"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
@@ -31,6 +31,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/ztxtech/fracast-0"
+Paper = "https://arxiv.org/abs/2609.32209"
 Repository = "https://github.com/ztxtech/fracast-0"
 Issues = "https://github.com/ztxtech/fracast-0/issues"
 Documentation = "https://github.com/ztxtech/fracast-0#readme"
