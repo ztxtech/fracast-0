@@ -600,6 +600,10 @@ code {
 
 /* Mobile Responsive Improvements */
 @media screen and (max-width: 768px) {
+  .hero-content {
+    padding-bottom: 3rem;
+  }
+
   .hero-body {
     padding: 2rem 1rem;
   }
@@ -864,6 +868,7 @@ body {
 
 .hero-content {
   text-align: center;
+  padding-bottom: 4rem;
 }
 
 .hero-eyebrow {
