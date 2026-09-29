@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "benchmark": {
+    "name": "BOOM",
+    "repository": "https://huggingface.co/datasets/Datadog/BOOM",
+    "dataset_revision": "69325b544c45ff0d6c43c7a99c49a6601a01725b",
+    "protocol_revision": "1527c41589189ad1bc3883ed4d3d97b3e5a3b47c",
+    "protocol": "official rolling evaluation"
+  },
+  "model": {
+    "name": "Fracast-0",
+    "parameter_count": 85001,
+    "weights": "fp32",
+    "weights_sha256": "0d678f123f3d1f91c5065cca2b5d40eccc469360afc2381b27290486011ded2c",
+    "context_length": 2048,
+    "quantiles": [
+      0.1,
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7,
+      0.8,
+      0.9
+    ]
+  },
+  "evaluation": {
+    "device": "mps",
+    "batch_size": 64,
+    "configurations_completed": 7413,
+    "configurations_total": 7413,
+    "forecasts_completed": 623602,
+    "task_failures": 0
+  },
+  "results": {
+    "scaled_mase": 0.723,
+    "scaled_crps": 0.434,
+    "scaled_average_rank": 11.808,
+    "scaled_mase_rank": 12,
+    "scaled_crps_rank": 11,
+    "scaled_average_rank_ordinal": 12,
+    "models_compared": 24,
+    "scaled_configurations": 6750,
+    "zero_inflated_configurations": 663
+  },
+  "artifacts": {
+    "results/Fracast-0/all_results.csv": "0928a3e54f8f74b3bbf0f2f93745a3a43ee4865fb779ae3d20330c746cbd32a2",
+    "leaderboards/BOOM_leaderboard_with_fracast.csv": "6156f9d10fa76bfcbd006fec85c2f41cd6198151c3ca22871cae744187175958"
+  }
+}

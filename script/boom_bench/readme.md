@@ -29,3 +29,7 @@ env -u PYTHONPATH PYTHONPATH=. tmp/boom-eval-venv/bin/python \
 For the complete benchmark, replace `boomlet` with `boom`. The full run
 downloads the remaining partitions and evaluates 623,602 forecasts. `--model`
 accepts a local release directory or a Hugging Face model id.
+
+The archived full-BOOM result is in `results/Fracast-0/`. The public model
+identifier in that archive is `Fracast-0`. The combined official-comparator
+leaderboard is in `leaderboards/BOOM_leaderboard_with_fracast.csv`.

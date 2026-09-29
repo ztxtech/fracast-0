@@ -78,3 +78,13 @@ def test_resume_reads_official_csv_schema():
     assert runner.completed_configs(path) == {"ds-0-T/Short/short"}
     assert rows[0]["eval_metrics/MASE[0.5]"] == "0.0"
     path.unlink()
+
+
+def test_archived_full_boom_result():
+    path = ROOT / "script" / "boom_bench" / "results" / "Fracast-0" / "all_results.csv"
+    with path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    assert len(rows) == 7413
+    assert {row["model"] for row in rows} == {"Fracast-0"}
+    assert all(row["dataset"].count("/") == 2 for row in rows)
+    assert sum(int(row["dataset_size"]) for row in rows) == 623602
