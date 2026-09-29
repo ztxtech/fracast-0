@@ -478,12 +478,6 @@ Naive. Lower is better, and TIME ranks use the official 29-model table.
 - **TIME, Manufacturing:** On `Smart_Manufacturing/H`, medium and long
   horizons rank 8th of 29 by MASE, while CRPS ranks range from 8th to 10th
   across all three horizons.
-- **FEV-Bench, Multivariate event series:** Each of the 15 BoomLet tasks
-  improves on Seasonal Naive across SQL, MASE, WQL, and WAPE. Their
-  geometric-mean SQL and WQL ratios are 0.403 and 0.419.
-- **FEV-Bench, Weather uncertainty:** Three Jena weather tasks reduce WQL to
-  0.261 of Seasonal Naive and improve every reported metric.
-
 These are scenario slices, not separate aggregate rankings. The benchmark
 disclosures above still apply.
 
