@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-Fracast contains code adapted from the following project.
+Fracast contains code and a brand asset from the following sources.
 
 ## TinyCast
 
@@ -23,3 +23,9 @@ revision and source path are recorded in each file header where applicable.
 The Fracast model, training pipeline, data port, corpus tools, and
 configuration files are original work in this repository unless a file header
 says otherwise.
+
+## arXiv wordmark
+
+- Source: https://arxiv.org/static/base/1.0.1/images/arxiv-logo-primary-light.svg
+- Local file: `static/images/arxiv-logo-primary-light.svg`
+- Nature of use: unmodified arXiv wordmark in the preprint link on the project page

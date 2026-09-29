@@ -915,7 +915,20 @@ body {
 }
 
 .publication-links .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-width: 154px;
+  min-height: 48px;
+}
+
+.publication-links .button-logo {
+  display: block;
+  width: 34px;
+  height: 18px;
+  margin-right: 10px;
+  object-fit: contain;
+  flex: 0 0 auto;
 }
 
 .publication-links .button-icon {
@@ -933,20 +946,6 @@ body {
   width: 100%;
   height: 100%;
   fill: currentColor;
-}
-
-.publication-status {
-  display: inline-block;
-  margin-top: 24px;
-  color: var(--text-light);
-  font-size: 0.92rem;
-  font-weight: 600;
-}
-
-.publication-status a {
-  color: var(--primary-hover);
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
 
 .quote-section {
