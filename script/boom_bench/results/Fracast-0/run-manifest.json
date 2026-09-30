@@ -9,6 +9,7 @@
   },
   "model": {
     "name": "Fracast-0",
+    "result_model_id": "fracast-0",
     "parameter_count": 85001,
     "weights": "fp32",
     "weights_sha256": "0d678f123f3d1f91c5065cca2b5d40eccc469360afc2381b27290486011ded2c",
@@ -45,7 +46,7 @@
     "zero_inflated_configurations": 663
   },
   "artifacts": {
-    "results/Fracast-0/all_results.csv": "0928a3e54f8f74b3bbf0f2f93745a3a43ee4865fb779ae3d20330c746cbd32a2",
+    "results/Fracast-0/all_results.csv": "bc303c1ec2501938193b580b218de324009db997be1c46b4727676e281efc2f6",
     "leaderboards/BOOM_leaderboard_with_fracast.csv": "6156f9d10fa76bfcbd006fec85c2f41cd6198151c3ca22871cae744187175958"
   }
 }

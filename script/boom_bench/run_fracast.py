@@ -346,7 +346,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--weights", choices=("fp32", "w8"), default="fp32")
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--batch-size", type=int, default=128)
-    parser.add_argument("--model-name", default="Fracast-0")
+    parser.add_argument("--model-name", default="fracast-0")
     parser.add_argument("--download", action="store_true")
     parser.add_argument("--hf-token", default=None)
     parser.add_argument("--limit", type=int, default=0, help="Smoke limit by metric query")

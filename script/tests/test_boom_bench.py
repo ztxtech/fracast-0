@@ -85,6 +85,6 @@ def test_archived_full_boom_result():
     with path.open(newline="", encoding="utf-8") as handle:
         rows = list(csv.DictReader(handle))
     assert len(rows) == 7413
-    assert {row["model"] for row in rows} == {"Fracast-0"}
+    assert {row["model"] for row in rows} == {"fracast-0"}
     assert all(row["dataset"].count("/") == 2 for row in rows)
     assert sum(int(row["dataset_size"]) for row in rows) == 623602
