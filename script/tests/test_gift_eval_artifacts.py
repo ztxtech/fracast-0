@@ -79,15 +79,9 @@ def main() -> int:
     )
 
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    assert manifest["submission"]["location"].endswith(
+    assert manifest["official_results"].endswith(
         "gift-eval/tree/main/results/Fracast-0"
     )
-    assert manifest["submission"]["state"] == "merged"
-    assert manifest["submission"]["merged_at"] == "2026-09-28T07:34:49Z"
-    assert manifest["submission"]["merge_commit"] == (
-        "82a8c1f9212c47c83fd95a7783f666ab0bc82f93"
-    )
-    assert manifest["submission"]["checks_passed"] is True
     assert manifest["evaluation"]["configurations_completed"] == 97
     assert manifest["evaluation"]["configurations_total"] == 97
     assert manifest["evaluation"]["task_failures"] == 0
@@ -121,7 +115,7 @@ def main() -> int:
     assert submission["model_dtype"] == "float32"
     assert submission["testdata_leakage"] == "Yes"
 
-    print("[PASS] GIFT-Eval archive files, metadata, submission, and disclosure checks")
+    print("[PASS] GIFT-Eval archive files, metadata, results, and disclosure checks")
     return 0
 
 

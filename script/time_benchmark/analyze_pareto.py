@@ -216,8 +216,9 @@ def main() -> None:
         },
         "sources": SOURCES,
         "limitations": [
-            "The official raw submission is merged; no separate official "
-            "recomputation is recorded for the local 98/98 compact scores.",
+            "The compact 98/98 scores come from the archived raw outputs and "
+            "the official 29-model table; no separate recomputation is "
+            "recorded for them.",
             "47 of 98 tasks use the 48-step release head with "
             "median-quantile rollout, not a strict official protocol claim.",
             "OmniScient uses the conservative Chronos-2 base lower bound and "

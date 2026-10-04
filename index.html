@@ -198,24 +198,22 @@
 
         <div class="benchmark-table-wrap" role="region" aria-label="Benchmark results" tabindex="0">
           <table class="benchmark-table">
-            <caption class="sr-only">Fracast-0 results across GIFT-Eval, TIME, and FEV-Bench</caption>
+            <caption class="sr-only">Fracast-0 results across GIFT-Eval, TIME, FEV-Bench, and BOOM</caption>
             <thead>
               <tr>
                 <th scope="col">Benchmark</th>
                 <th scope="col">Headline result</th>
                 <th scope="col">Scope</th>
-                <th scope="col">Result status</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <th scope="row"><a href="https://huggingface.co/spaces/Salesforce/GIFT-Eval" target="_blank" rel="noopener">GIFT-Eval</a></th>
+                <th scope="row"><a href="https://github.com/SalesforceAIResearch/gift-eval/tree/main/results/Fracast-0" target="_blank" rel="noopener">GIFT-Eval</a></th>
                 <td>
                   <strong>Normalized MASE 0.807133</strong>
                   <span class="metric-secondary">Normalized MWQL 0.563008</span>
                 </td>
-                <td>97 configurations</td>
-                <td><span class="benchmark-status status-merged"><a href="https://github.com/SalesforceAIResearch/gift-eval/tree/main/results/Fracast-0" target="_blank" rel="noopener">Official results</a></span></td>
+                <td>97 configurations; official results directory</td>
               </tr>
               <tr>
                 <th scope="row"><a href="https://huggingface.co/spaces/Real-TSF/TIME-leaderboard" target="_blank" rel="noopener">TIME</a></th>
@@ -223,17 +221,15 @@
                   <strong>Normalized MASE 0.767965</strong>
                   <span class="metric-secondary">Normalized CRPS 0.649192</span>
                 </td>
-                <td>98 tasks; rank 24/29 on both metrics</td>
-                <td><span class="benchmark-status status-merged"><a href="https://huggingface.co/datasets/Real-TSF/TIME-Output/discussions/42" target="_blank" rel="noopener">Merged</a></span></td>
+                <td>98 tasks; rank 24/29 on both metrics in the official table</td>
               </tr>
               <tr>
-                <th scope="row"><a href="https://github.com/autogluon/fev" target="_blank" rel="noopener">FEV-Bench</a></th>
+                <th scope="row"><a href="https://huggingface.co/spaces/autogluon/fev-bench" target="_blank" rel="noopener">FEV-Bench</a></th>
                 <td>
                   <strong>Controlled MASE rank 16/30</strong>
                   <span class="metric-secondary">Controlled SQL rank 16/30</span>
                 </td>
-                <td>100 tasks; raw ranks MASE 20/30 and SQL 17/30</td>
-                <td><span class="benchmark-status status-open"><a href="https://github.com/autogluon/fev/pull/189" target="_blank" rel="noopener">PR #189: open</a></span></td>
+                <td>100 tasks; raw ranks MASE 20/30 and SQL 17/30; in-corpus</td>
               </tr>
               <tr>
                 <th scope="row"><a href="https://huggingface.co/spaces/Datadog/BOOM" target="_blank" rel="noopener">BOOM</a></th>
@@ -242,12 +238,11 @@
                   <span class="metric-secondary">Scaled CRPS 0.434</span>
                 </td>
                 <td>7,413 configurations; in-corpus</td>
-                <td><span class="benchmark-status status-incorpus"><a href="https://github.com/ztxtech/fracast-0/tree/main/script/boom_bench" target="_blank" rel="noopener">In corpus</a></span></td>
               </tr>
             </tbody>
           </table>
         </div>
-        <p class="benchmark-note">GIFT-Eval and TIME results are published in their official repositories. FEV-Bench is under official review. BOOM is an in-corpus benchmark because the pretraining recipe includes the evaluation dataset.</p>
+        <p class="benchmark-note">Scores use the official evaluation protocols and the official comparison tables for each benchmark. FEV-Bench and BOOM are in-corpus because the pretraining recipe includes their evaluation datasets. TIME uses median-quantile feedback beyond 48 steps on 47 of 98 tasks.</p>
 
         <div class="scenario-highlights">
           <h3>Scenario highlights</h3>

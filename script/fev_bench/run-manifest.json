@@ -1,6 +1,6 @@
 {
   "artifacts": {
-    "README.md": "33c74088d3564b00ad083f4ff66015b2bfe914788f42aa34f9b7493e68d63e3a",
+    "README.md": "a068cb09a7484dc1f2c949b7fa146e33f350f4517c99a92afc76c29afe2855c9",
     "analysis/fracast_ranks.csv": "272a3270e4074f50ac40aea7fdc4d28664bed83bf99aa8e807964e2f4b9c9487",
     "analysis/leaderboard_controlled_MASE.csv": "ff97f8df46514a1f7e069c9fc85e2b760777c4bb556c43c6beb87c92ac5c3e26",
     "analysis/leaderboard_controlled_SQL.csv": "95c9cafb795fd2d2c5dad8df59cdad3811ecd361259cda90e38bc9d72938c6d1",
@@ -66,11 +66,7 @@
     "sha256": "9dda82627d03966a279b4118a140d3b293c495c508c1037e05b536326e193ab2"
   },
   "schema_version": 1,
-  "submission": {
-    "head_commit": "8407c157bc144b42765c903843ea95cfb2439c1f",
-    "pull_request": "https://github.com/autogluon/fev/pull/189",
-    "state": "open"
-  },
+  "leaderboard": "https://huggingface.co/spaces/autogluon/fev-bench",
   "weights": {
     "config_sha256": "1d7d2cf831f51ae2c5c9bf4cb4d8d4a49ec0085d6d55010814a1aae2a777a5dc",
     "fp32_sha256": "0d678f123f3d1f91c5065cca2b5d40eccc469360afc2381b27290486011ded2c",

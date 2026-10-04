@@ -386,8 +386,9 @@ Seasonal_Naive result and then takes the geometric mean across all 97
 configurations. The result is labeled `pretrained` with
 `testdata_leakage: "Yes"` because the complete pretraining recipe contains
 dataset families from the GIFT-Eval test corpus. The official results are
-public in the
-[GIFT-Eval `results/Fracast-0` directory](https://github.com/SalesforceAIResearch/gift-eval/tree/main/results/Fracast-0).
+listed in the
+[GIFT-Eval `results/Fracast-0` directory](https://github.com/SalesforceAIResearch/gift-eval/tree/main/results/Fracast-0)
+and the [GIFT-Eval leaderboard](https://huggingface.co/spaces/Salesforce/GIFT-Eval).
 The same two official files are archived under
 `script/gift_eval/results/Fracast-0/`, and the split/overall summary is in
 `script/gift_eval/analysis/protocol_summary.csv`.
@@ -410,14 +411,14 @@ python script/gift_eval/evaluate.py \
 
 ## TIME Benchmark
 
-The complete 98-task TIME submission is archived under
+The complete 98-task TIME evaluation is archived under
 `script/time_benchmark/`. It includes the official runner, validation, pinned
-analysis script, parameter-Pareto tables, submission disclosure, and a run
-manifest. The raw outputs were
-[merged into `TIME-Output`](https://huggingface.co/datasets/Real-TSF/TIME-Output/discussions/42)
-main at [`65119f5`](https://huggingface.co/datasets/Real-TSF/TIME-Output/commit/65119f562f340544ee2fe54194a60b3043a514fb).
-The archived run used Apple MPS, batch size 512, and the FP32 release
-checkpoint; all 98 tasks completed.
+analysis script, parameter-Pareto tables, and a run manifest. The archived run
+used Apple MPS, batch size 512, and the FP32 release checkpoint; all 98 tasks
+completed. The ranking table is the official 29-model
+[TIME leaderboard](https://huggingface.co/spaces/Real-TSF/TIME-leaderboard),
+and the raw 98-task outputs are in
+[`Real-TSF/TIME-Output`](https://huggingface.co/datasets/Real-TSF/TIME-Output).
 
 | Scope | Normalized MASE | Normalized CRPS | MASE rank | CRPS rank |
 | --- | ---: | ---: | ---: | ---: |
@@ -430,10 +431,8 @@ Fracast-0 is non-dominated on both parameter-MASE and parameter-CRPS fronts
 with 85,001 parameters. Of the 98 tasks, 47 use the released 48-step head with
 median-quantile feedback beyond 48 steps; this is disclosed in every raw task
 configuration and is not presented as a strict official-protocol result. The
-raw 98-task output is in
-[TIME-Output discussion #42](https://huggingface.co/datasets/Real-TSF/TIME-Output/discussions/42),
-which is merged. Review is complete; no separate official recomputation is
-recorded for the compact scores in this archive.
+compact scores in this archive come from the archived raw outputs and the
+official 29-model table; no separate recomputation is recorded for them.
 
 ## FEV-Bench
 
@@ -454,8 +453,9 @@ The raw SQL win rate is 44.44% with a 35.72% skill score. Fracast-0 was
 pretrained on every `autogluon/fev_datasets` configuration used by this
 benchmark, so the official leakage-controlled aggregate replaces its errors
 with Chronos-Bolt. It must not be presented as an independent zero-shot
-result. The complete disclosure is in
-[FEV-Bench PR #189](https://github.com/autogluon/fev/pull/189).
+result. The protocol and comparison table are in the
+[FEV-Bench leaderboard](https://huggingface.co/spaces/autogluon/fev-bench) and
+the [FEV-Bench repository](https://github.com/autogluon/fev).
 
 572 of 235,039 sequence windows (0.243%) had fewer than eight finite
 observations after official task slicing. The wrapper repeats the most recent
@@ -478,8 +478,10 @@ obtains scaled MASE `0.723`, scaled CRPS `0.434`, and mean per-dataset rank
 
 The pinned dataset revision, evaluator revision, hashes, and per-configuration
 results are archived under `script/boom_bench/`. The combined comparator table
-is in
+against the official 24-model table is in
 [`script/boom_bench/leaderboards/BOOM_leaderboard_with_fracast.csv`](script/boom_bench/leaderboards/BOOM_leaderboard_with_fracast.csv).
+The official protocol and comparison table are in the
+[BOOM leaderboard](https://huggingface.co/spaces/Datadog/BOOM).
 
 `Datadog/BOOM` is also part of the complete Fracast-0 pretraining recipe, so
 this result is in-corpus and must not be presented as zero-shot.
@@ -514,9 +516,9 @@ disclosures above still apply.
 | `tmp/` | smoke runs, temporary configs, and diagnostics |
 
 All runtime directories are ignored by Git. The small release checkpoints and
-the compact GIFT-Eval, FEV-Bench, and TIME submission archives are committed;
-PyTorch training checkpoints, raw benchmark workspaces, and generated runtime
-outputs are not.
+the compact GIFT-Eval, TIME, FEV-Bench, and BOOM benchmark archives are
+committed; PyTorch training checkpoints, raw benchmark workspaces, and
+generated runtime outputs are not.
 
 ## Reproducibility
 

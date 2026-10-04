@@ -1,8 +1,8 @@
-# FEV-Bench submission archive
+# FEV-Bench result archive
 
 This directory archives the complete local Fracast-0 FEV-Bench run. It contains the
-official submission adapter, the pinned evaluation dependency, the raw 100-task CSV,
-raw and leakage-controlled leaderboard tables, and a deterministic reproduction entry.
+official evaluation adapter, the pinned evaluation dependency, the raw 100-task CSV,
+raw and leakage-controlled comparison tables, and a deterministic reproduction entry.
 
 The source benchmark is `autogluon/fev` at commit
 `81cf1255bb0c88dc039ae9bca23f73db6d9dfa61`. The run used Apple MPS, batch size 512,
@@ -11,8 +11,9 @@ and the `w8` weights. Its SHA256 identity is recorded in `run-manifest.json`.
 Fracast-0 was pretrained on every `autogluon/fev_datasets` configuration in this
 benchmark. Therefore the official controlled mode replaces all Fracast-0 errors with
 Chronos-Bolt and the resulting aggregate must not be read as an independent zero-shot
-score. The official result is submitted in
-[FEV-Bench PR #189](https://github.com/autogluon/fev/pull/189).
+score. The protocol and comparison table are in the
+[FEV-Bench leaderboard](https://huggingface.co/spaces/autogluon/fev-bench) and the
+[FEV-Bench repository](https://github.com/autogluon/fev).
 
 572 of 235,039 sequence windows (0.243%) had fewer than eight finite observations after
 the official task slicing. The wrapper deterministically repeats the most recent finite

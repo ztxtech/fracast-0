@@ -1296,38 +1296,6 @@ body {
   font-size: 0.9rem;
 }
 
-.benchmark-status {
-  display: inline-block;
-  padding: 0.28rem 0.55rem;
-  border: 1px solid;
-  border-radius: 6px;
-  font-size: 0.88rem;
-  white-space: nowrap;
-}
-
-.benchmark-status a {
-  color: inherit;
-  text-decoration: none;
-}
-
-.status-open {
-  color: #9a3412;
-  background: #fff7ed;
-  border-color: #fed7aa;
-}
-
-.status-merged {
-  color: #166534;
-  background: #ecfdf5;
-  border-color: #bbf7d0;
-}
-
-.status-incorpus {
-  color: #92400e;
-  background: #fffbeb;
-  border-color: #fde68a;
-}
-
 .benchmark-note {
   max-width: 930px;
   margin: 0 auto 32px;

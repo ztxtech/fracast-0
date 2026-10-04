@@ -44,14 +44,7 @@
       "normalized_mwql": 0.563008
     }
   },
-  "submission": {
-    "location": "https://github.com/SalesforceAIResearch/gift-eval/tree/main/results/Fracast-0",
-    "state": "merged",
-    "merged_at": "2026-09-28T07:34:49Z",
-    "merge_commit": "82a8c1f9212c47c83fd95a7783f666ab0bc82f93",
-    "checks_passed": true,
-    "file_count": 2
-  },
+  "official_results": "https://github.com/SalesforceAIResearch/gift-eval/tree/main/results/Fracast-0",
   "disclosures": [
     "The result is labeled pretrained, not zero-shot.",
     "The complete pretraining recipe includes dataset families present in the GIFT-Eval test corpus.",
