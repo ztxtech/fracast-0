@@ -893,6 +893,14 @@ body {
   letter-spacing: -0.045em;
 }
 
+.hero-release-note {
+  max-width: 900px;
+  margin: 0 auto 1.6rem;
+  color: var(--text-secondary);
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+
 .publication-authors {
   display: flex;
   flex-wrap: wrap;
